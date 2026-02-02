@@ -3,7 +3,9 @@ package com.teamtaskers.teamtaskers.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "workspace_members")
+@Table(name = "workspace_members", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"workspace_id", "user_id"})
+})
 public class WorkspaceMember {
 
     @Id

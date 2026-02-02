@@ -14,8 +14,8 @@ public class Workspace {
 
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
     // ✅ REQUIRED GETTERS & SETTERS

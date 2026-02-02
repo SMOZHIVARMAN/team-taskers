@@ -6,16 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { workspaceApi } from "@/services/api";
 import { CreateWorkspaceModal } from "@/components/workspaces/CreateWorkspaceModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Workspace {
   id: number;
   name: string;
-  role: string;
+  ownerId: number;
   memberCount: number;
 }
 
 const Workspaces: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,11 +42,11 @@ const Workspaces: React.FC = () => {
   };
 
   const adminWorkspaces = workspaces.filter(
-    (ws) => ws.role === 'OWNER'
+    (ws) => ws.ownerId === user?.id
   );
 
   const memberWorkspaces = workspaces.filter(
-    (ws) => ws.role !== 'OWNER'
+    (ws) => ws.ownerId !== user?.id
   );
 
   const filteredWorkspaces = (
@@ -143,7 +145,7 @@ const Workspaces: React.FC = () => {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredWorkspaces.map((ws) => {
-          const isOwner = ws.role === 'OWNER';
+          const isOwner = ws.ownerId === user?.id;
 
           return (
             <div

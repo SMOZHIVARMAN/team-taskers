@@ -2,10 +2,8 @@ package com.teamtaskers.teamtaskers.controller;
 
 import com.teamtaskers.teamtaskers.dto.AddMemberRequest;
 import com.teamtaskers.teamtaskers.dto.CreateWorkspaceRequest;
-import com.teamtaskers.teamtaskers.dto.response.TaskResponse;
-import com.teamtaskers.teamtaskers.dto.response.WorkspaceMemberResponse;
-import com.teamtaskers.teamtaskers.dto.response.WorkspaceResponse;
-import com.teamtaskers.teamtaskers.dto.response.WorkspaceDetailResponse;
+import com.teamtaskers.teamtaskers.dto.response.*;
+
 import com.teamtaskers.teamtaskers.exception.AccessDeniedException;
 import com.teamtaskers.teamtaskers.exception.ResourceNotFoundException;
 import com.teamtaskers.teamtaskers.model.*;
@@ -54,20 +52,23 @@ public class WorkspaceController {
     // 2️⃣ GET MY WORKSPACES ✅ FIXED ENDPOINT
     // ----------------------------------------------------
     @GetMapping
-    public List<WorkspaceResponse> getMyWorkspaces(Authentication authentication) {
+    public List<SimpleWorkspaceResponse> getMyWorkspaces(Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
 
         return workspaceMemberRepository.findByUser(user)
                 .stream()
-                .map(member -> new WorkspaceResponse(
-                        member.getWorkspace().getId(),
-                        member.getWorkspace().getName(),
-                        member.getRole().name(),
-                        workspaceMemberRepository
-                                .findByWorkspaceId(member.getWorkspace().getId())
-                                .size()
-                ))
+                .map(member -> {
+                    Workspace workspace = member.getWorkspace();
+                    int memberCount = workspaceMemberRepository.findByWorkspaceId(workspace.getId()).size();
+                    return new SimpleWorkspaceResponse(
+                            workspace.getId(),
+                            workspace.getName(),
+                            workspace.getOwner().getId(),
+                            workspace.getOwner().getUsername(),
+                            memberCount
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
@@ -192,3 +193,4 @@ public class WorkspaceController {
         return "Workspace deleted successfully";
     }
 }
+

@@ -11,7 +11,7 @@ import { authApi, userApi } from "@/services/api";
    Types
 ================================ */
 interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
   bio?: string;

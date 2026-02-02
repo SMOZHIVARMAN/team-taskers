@@ -4,13 +4,12 @@ import com.teamtaskers.teamtaskers.dto.AddMemberRequest;
 import com.teamtaskers.teamtaskers.dto.CreateWorkspaceRequest;
 import com.teamtaskers.teamtaskers.exception.AccessDeniedException;
 import com.teamtaskers.teamtaskers.exception.ResourceNotFoundException;
-import com.teamtaskers.teamtaskers.model.User;
-import com.teamtaskers.teamtaskers.model.Workspace;
-import com.teamtaskers.teamtaskers.model.WorkspaceMember;
-import com.teamtaskers.teamtaskers.model.WorkspaceRole;
+import com.teamtaskers.teamtaskers.model.*;
 import com.teamtaskers.teamtaskers.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
 
 @Service
 @Transactional
@@ -21,7 +20,6 @@ public class WorkspaceService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
-
 
     public WorkspaceService(
             WorkspaceRepository workspaceRepository,
@@ -37,18 +35,44 @@ public class WorkspaceService {
         this.messageRepository = messageRepository;
     }
 
+    // ✅ CREATE WORKSPACE (OWNER ALWAYS ADMIN)
     public void createWorkspace(CreateWorkspaceRequest request, User user) {
+        User managedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         Workspace workspace = new Workspace();
         workspace.setName(request.getName());
         workspace.setDescription(request.getDescription());
-        workspace.setOwner(user);
-        workspaceRepository.save(workspace);
+        workspace.setOwner(managedUser);
 
-        WorkspaceMember member = new WorkspaceMember();
-        member.setWorkspace(workspace);
-        member.setUser(user);
-        member.setRole(WorkspaceRole.OWNER);
-        workspaceMemberRepository.save(member);
+        Workspace saved = workspaceRepository.save(workspace);
+
+        WorkspaceMember ownerMember = new WorkspaceMember();
+        ownerMember.setWorkspace(saved);
+        ownerMember.setUser(managedUser);
+        ownerMember.setRole(WorkspaceRole.OWNER);
+
+        workspaceMemberRepository.save(ownerMember);
+    }
+
+    // 🔥 THIS METHOD FIXES ADMIN / MEMBER TAB FOREVER
+    public List<Workspace> getUserWorkspaces(User user) {
+
+        // 1️⃣ OWNER workspaces
+        List<Workspace> owned = workspaceRepository.findByOwnerId(user.getId());
+
+        // 2️⃣ MEMBER workspaces
+        List<WorkspaceMember> memberships = workspaceMemberRepository.findByUser(user);
+        List<Workspace> memberWorkspaces = memberships.stream()
+                .map(WorkspaceMember::getWorkspace)
+                .toList();
+
+        // 3️⃣ MERGE WITHOUT DUPLICATES
+        Set<Workspace> result = new LinkedHashSet<>();
+        result.addAll(owned);
+        result.addAll(memberWorkspaces);
+
+        return new ArrayList<>(result);
     }
 
     public void addMember(Long workspaceId, AddMemberRequest request, User currentUser) {
@@ -56,7 +80,7 @@ public class WorkspaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can add members");
+            throw new AccessDeniedException("Only owner can add members");
         }
 
         User newUser = userRepository.findByUsername(request.getUsername())
@@ -79,18 +103,19 @@ public class WorkspaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can remove members");
+            throw new AccessDeniedException("Only owner can remove members");
         }
 
         User userToRemove = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User to remove not found"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         if (workspace.getOwner().getId().equals(userToRemove.getId())) {
-            throw new AccessDeniedException("Cannot remove the workspace owner");
+            throw new AccessDeniedException("Cannot remove owner");
         }
 
-        WorkspaceMember member = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userToRemove.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Member not found in workspace"));
+        WorkspaceMember member = workspaceMemberRepository
+                .findByWorkspaceIdAndUserId(workspaceId, userToRemove.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
 
         workspaceMemberRepository.delete(member);
     }
@@ -100,10 +125,9 @@ public class WorkspaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can delete workspace");
+            throw new AccessDeniedException("Only owner can delete workspace");
         }
 
-        // These operations now run within a single transaction
         messageRepository.deleteByWorkspace(workspace);
         taskRepository.deleteByWorkspace(workspace);
         workspaceMemberRepository.deleteByWorkspace(workspace);

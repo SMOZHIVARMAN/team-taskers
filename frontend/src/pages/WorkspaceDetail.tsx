@@ -19,23 +19,31 @@ import { workspaceApi, taskApi, chatApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTaskModal } from '@/components/workspaces/CreateTaskModal';
+import { User } from '@/contexts/AuthContext';
+
+interface WorkspaceMember {
+  id: number;
+  username: string;
+  role: string;
+}
 
 interface Workspace {
   id: string;
   name: string;
   description?: string;
+  ownerId: number;
   ownerUsername: string;
-  members?: string[];
-  deadline?: string;
+  members: WorkspaceMember[];
 }
 
 interface Task {
   id: string;
   title: string;
   description?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
   dueDate?: string;
-  assignee?: string;
+  assignee?: User;
 }
 
 interface Message {
@@ -61,7 +69,7 @@ const WorkspaceDetail: React.FC = () => {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-  const isOwner = workspace?.ownerUsername === user?.username;
+  const isOwner = workspace ? workspace.ownerId === user?.id : false;
 
   useEffect(() => {
     if (workspaceId) {
@@ -233,7 +241,7 @@ const WorkspaceDetail: React.FC = () => {
   // Filter tasks for current user if not owner
   const displayTasks = isOwner 
     ? tasks 
-    : tasks.filter(t => t.assignee === user?.username);
+    : tasks.filter(t => t.assignee?.username === user?.username);
 
   if (isLoading) {
     return (
@@ -336,39 +344,31 @@ const WorkspaceDetail: React.FC = () => {
           <div className="glass rounded-xl p-4">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
               <Users size={16} />
-              Members ({(workspace.members?.length || 0) + 1})
+              Members ({workspace.members.length})
             </h3>
             
             <div className="space-y-2">
-              {/* Owner */}
-              <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold">
-                    {workspace.ownerUsername.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-medium">{workspace.ownerUsername}</span>
-                </div>
-                <Crown size={14} className="text-warning" />
-              </div>
-
               {/* Members */}
-              {workspace.members?.map((member) => (
-                <div key={member} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 group">
+              {workspace.members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 group">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                      {member.charAt(0).toUpperCase()}
+                      {member.username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm">{member}</span>
+                    <span className="text-sm">{member.username}</span>
                   </div>
-                  {isOwner && (
+                  {isOwner && member.id !== user?.id && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemoveMember(member)}
+                      onClick={() => handleRemoveMember(member.username)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 text-destructive hover:text-destructive"
                     >
                       <UserMinus size={14} />
                     </Button>
+                  )}
+                  {member.role === 'OWNER' && (
+                    <Crown size={14} className="text-warning" />
                   )}
                 </div>
               ))}
