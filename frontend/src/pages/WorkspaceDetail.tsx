@@ -56,6 +56,7 @@ const WorkspaceDetail: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -163,6 +164,29 @@ const WorkspaceDetail: React.FC = () => {
     }
   };
 
+  const handleAddMember = async () => {
+    if (!newMemberName.trim()) return;
+
+    try {
+      await workspaceApi.addMember(workspaceId!, {
+        username: newMemberName,
+        role: 'MEMBER',
+      });
+      toast({
+        title: "Member added",
+        description: `${newMemberName} has been added to the workspace.`,
+      });
+      setNewMemberName('');
+      await fetchWorkspaceData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to add member.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRemoveMember = async (username: string) => {
     if (!confirm(`Remove ${username} from this workspace?`)) return;
     
@@ -185,6 +209,25 @@ const WorkspaceDetail: React.FC = () => {
   const handleTaskCreated = () => {
     setShowCreateTask(false);
     fetchWorkspaceData();
+  };
+
+  const handleDeleteWorkspace = async () => {
+    if (window.confirm('Are you sure you want to delete this workspace? This action cannot be undone.')) {
+      try {
+        await workspaceApi.delete(workspaceId!);
+        toast({
+          title: "Workspace deleted",
+          description: "The workspace has been successfully deleted.",
+        });
+        navigate('/workspaces');
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to delete workspace.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   // Filter tasks for current user if not owner
@@ -237,10 +280,16 @@ const WorkspaceDetail: React.FC = () => {
         </div>
 
         {isOwner && (
-          <Button variant="gradient" onClick={() => setShowCreateTask(true)} className="gap-2">
-            <Plus size={18} />
-            Add Task
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" onClick={handleDeleteWorkspace} className="gap-2">
+              <Trash2 size={18} />
+              Delete Workspace
+            </Button>
+            <Button variant="gradient" onClick={() => setShowCreateTask(true)} className="gap-2">
+              <Plus size={18} />
+              Add Task
+            </Button>
+          </div>
         )}
       </div>
 
@@ -323,6 +372,19 @@ const WorkspaceDetail: React.FC = () => {
                   )}
                 </div>
               ))}
+
+              {isOwner && (
+                <div className="pt-2 mt-2 border-t border-border">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter username to add"
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                    />
+                    <Button onClick={handleAddMember}>Add</Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

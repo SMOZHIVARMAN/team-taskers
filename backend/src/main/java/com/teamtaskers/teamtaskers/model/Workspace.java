@@ -12,6 +12,8 @@ public class Workspace {
 
     private String name;
 
+    private String description;
+
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
@@ -26,12 +28,20 @@ public class Workspace {
         return name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public User getOwner() {
         return owner;
     }
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public void setOwner(User owner) {

@@ -24,4 +24,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findMessagesWithSenderByWorkspace(
             @Param("workspace") Workspace workspace
     );
+
+    void deleteByWorkspace(Workspace workspace);
 }

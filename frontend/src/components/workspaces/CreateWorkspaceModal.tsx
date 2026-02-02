@@ -16,6 +16,7 @@ interface CreateWorkspaceModalProps {
 
 const workspaceSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be less than 50 characters'),
+  description: z.string().max(200, 'Description must be less than 200 characters').optional(),
 });
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
@@ -42,6 +43,7 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     try {
       await workspaceApi.create({
         name: data.name,
+        description: data.description,
       });
 
       toast({
@@ -91,6 +93,19 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               />
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description (Optional)</label>
+              <textarea
+                {...register('description')}
+                placeholder="Brief description of the project..."
+                className="flex w-full rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                rows={3}
+              />
+              {errors.description && (
+                <p className="text-xs text-destructive">{errors.description.message}</p>
               )}
             </div>
 

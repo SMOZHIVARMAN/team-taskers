@@ -106,6 +106,7 @@ export const workspaceApi = {
 
   create: (data: {
     name: string;
+    description?: string;
   }) => api.post("/workspaces", data),
 
   addMember: (workspaceId: string, data: { username: string; role: string }) =>
@@ -113,6 +114,8 @@ export const workspaceApi = {
 
   removeMember: (workspaceId: string, username: string) =>
     api.delete(`/workspaces/${workspaceId}/members/${username}`),
+
+  delete: (workspaceId: string) => api.delete(`/workspaces/${workspaceId}`),
 };
 
 /* ===============================

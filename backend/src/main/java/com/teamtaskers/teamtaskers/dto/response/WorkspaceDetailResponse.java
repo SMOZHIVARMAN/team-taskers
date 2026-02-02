@@ -9,12 +9,14 @@ import java.util.stream.Collectors;
 public class WorkspaceDetailResponse {
     private String id;
     private String name;
+    private String description;
     private String ownerUsername;
     private List<String> members;
 
     public WorkspaceDetailResponse(Workspace workspace, List<WorkspaceMemberResponse> memberResponses) {
         this.id = workspace.getId().toString();
         this.name = workspace.getName();
+        this.description = workspace.getDescription();
         this.ownerUsername = workspace.getOwner().getUsername();
         this.members = memberResponses.stream()
                 .map(WorkspaceMemberResponse::getUsername)
@@ -37,6 +39,14 @@ public class WorkspaceDetailResponse {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getOwnerUsername() {

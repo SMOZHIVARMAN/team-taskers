@@ -5,14 +5,15 @@ import com.teamtaskers.teamtaskers.dto.CreateWorkspaceRequest;
 import com.teamtaskers.teamtaskers.dto.response.TaskResponse;
 import com.teamtaskers.teamtaskers.dto.response.WorkspaceMemberResponse;
 import com.teamtaskers.teamtaskers.dto.response.WorkspaceResponse;
+import com.teamtaskers.teamtaskers.dto.response.WorkspaceDetailResponse;
 import com.teamtaskers.teamtaskers.exception.AccessDeniedException;
 import com.teamtaskers.teamtaskers.exception.ResourceNotFoundException;
 import com.teamtaskers.teamtaskers.model.*;
 import com.teamtaskers.teamtaskers.repository.*;
+import com.teamtaskers.teamtaskers.service.WorkspaceService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.teamtaskers.teamtaskers.dto.response.WorkspaceDetailResponse;
-
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,22 +21,21 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/workspaces")
 public class WorkspaceController {
-
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
-    private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final WorkspaceService workspaceService;
 
     public WorkspaceController(
             WorkspaceRepository workspaceRepository,
             WorkspaceMemberRepository workspaceMemberRepository,
-            UserRepository userRepository,
-            TaskRepository taskRepository
+            TaskRepository taskRepository,
+            WorkspaceService workspaceService
     ) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
-        this.userRepository = userRepository;
         this.taskRepository = taskRepository;
+        this.workspaceService = workspaceService;
     }
 
     // ----------------------------------------------------
@@ -47,17 +47,7 @@ public class WorkspaceController {
             Authentication authentication
     ) {
         User user = (User) authentication.getPrincipal();
-
-        Workspace workspace = new Workspace();
-        workspace.setName(request.getName());
-        workspace.setOwner(user);
-        workspaceRepository.save(workspace);
-
-        WorkspaceMember member = new WorkspaceMember();
-        member.setWorkspace(workspace);
-        member.setUser(user);
-        member.setRole(WorkspaceRole.OWNER);
-        workspaceMemberRepository.save(member);
+        workspaceService.createWorkspace(request, user);
     }
 
     // ----------------------------------------------------
@@ -85,35 +75,35 @@ public class WorkspaceController {
     // 3️⃣ ADD MEMBER (OWNER ONLY)
     // ----------------------------------------------------
     @PostMapping("/{workspaceId}/members")
-    public String addMember(
+    public ResponseEntity<String> addMember(
             @PathVariable Long workspaceId,
             @RequestBody AddMemberRequest request,
             Authentication authentication
     ) {
         User currentUser = (User) authentication.getPrincipal();
-
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can add members");
+        try {
+            workspaceService.addMember(workspaceId, request, currentUser);
+            return ResponseEntity.ok("Member added successfully");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
 
-        User newUser = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, newUser.getId())) {
-            return "User already exists in workspace";
+    @DeleteMapping("/{workspaceId}/members/{username}")
+    public ResponseEntity<String> removeMember(
+            @PathVariable Long workspaceId,
+            @PathVariable String username,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+        try {
+            workspaceService.removeMember(workspaceId, username, currentUser);
+            return ResponseEntity.ok("Member removed successfully");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
         }
-
-        WorkspaceMember member = new WorkspaceMember();
-        member.setWorkspace(workspace);
-        member.setUser(newUser);
-        member.setRole(request.getRole());
-
-        workspaceMemberRepository.save(member);
-
-        return "Member added successfully";
     }
 
     // ----------------------------------------------------
@@ -198,18 +188,7 @@ public class WorkspaceController {
             Authentication authentication
     ) {
         User currentUser = (User) authentication.getPrincipal();
-
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can delete workspace");
-        }
-
-        workspaceMemberRepository.deleteByWorkspaceId(workspaceId);
-        taskRepository.deleteByWorkspace(workspace);
-        workspaceRepository.delete(workspace);
-
+        workspaceService.deleteWorkspace(workspaceId, currentUser);
         return "Workspace deleted successfully";
     }
 }
