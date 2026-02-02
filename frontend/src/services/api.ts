@@ -7,7 +7,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 /* ===============================
-   Axios Instance
+   Axios Instance (SINGLE SOURCE)
 ================================ */
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -17,18 +17,13 @@ const api = axios.create({
 });
 
 /* ===============================
-   Request Interceptor (JWT SAFE)
+   Request Interceptor
 ================================ */
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
 
-    // ❗ DO NOT attach token for auth endpoints
-    const isAuthRequest =
-      config.url?.includes("/auth/login") ||
-      config.url?.includes("/auth/register");
-
-    if (token && !isAuthRequest) {
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -43,15 +38,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    if (status === 401 || status === 403) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // prevent redirect loop
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
     }
+
     return Promise.reject(error);
   }
 );
@@ -66,11 +63,10 @@ export const authApi = {
     password: string;
   }) => api.post("/auth/register", data),
 
-  // ✅ username + password (MATCHES POSTMAN)
   login: (data: {
     username: string;
     password: string;
-  }) => api.post("/auth/login", data),
+  }) => api.post<string>("/auth/login", data),
 
   changePassword: (data: {
     oldPassword: string;
@@ -158,14 +154,14 @@ export const taskApi = {
 };
 
 /* ===============================
-   CHAT API
+   CHAT API ✅ FIXED
 ================================ */
 export const chatApi = {
   getMessages: (workspaceId: string) =>
-    api.get(`/chat/${workspaceId}`),
+    api.get(`/workspaces/${workspaceId}/messages`),
 
-  sendMessage: (workspaceId: string, message: string) =>
-    api.post(`/chat/${workspaceId}/send`, { message }),
+  sendMessage: (workspaceId: string, content: string) =>
+    api.post(`/workspaces/${workspaceId}/messages`, { content }),
 };
 
 /* ===============================

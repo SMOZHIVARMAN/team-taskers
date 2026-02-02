@@ -3,8 +3,8 @@ package com.teamtaskers.teamtaskers.controller;
 import com.teamtaskers.teamtaskers.dto.AddMemberRequest;
 import com.teamtaskers.teamtaskers.dto.CreateWorkspaceRequest;
 import com.teamtaskers.teamtaskers.dto.response.TaskResponse;
-import com.teamtaskers.teamtaskers.dto.response.WorkspaceResponse;
 import com.teamtaskers.teamtaskers.dto.response.WorkspaceMemberResponse;
+import com.teamtaskers.teamtaskers.dto.response.WorkspaceResponse;
 import com.teamtaskers.teamtaskers.exception.AccessDeniedException;
 import com.teamtaskers.teamtaskers.exception.ResourceNotFoundException;
 import com.teamtaskers.teamtaskers.model.*;
@@ -40,7 +40,7 @@ public class WorkspaceController {
     // 1️⃣ CREATE WORKSPACE
     // ----------------------------------------------------
     @PostMapping
-    public WorkspaceResponse createWorkspace(
+    public void createWorkspace(
             @RequestBody CreateWorkspaceRequest request,
             Authentication authentication
     ) {
@@ -56,30 +56,27 @@ public class WorkspaceController {
         member.setUser(user);
         member.setRole(WorkspaceRole.OWNER);
         workspaceMemberRepository.save(member);
-
-        return new WorkspaceResponse(
-                workspace.getId(),
-                workspace.getName(),
-                user.getUsername()
-        );
     }
 
     // ----------------------------------------------------
-    // 2️⃣ GET MY WORKSPACES
+    // 2️⃣ GET MY WORKSPACES ✅ FIXED ENDPOINT
     // ----------------------------------------------------
-    @GetMapping("/my")
+    @GetMapping
     public List<WorkspaceResponse> getMyWorkspaces(Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
 
         return workspaceMemberRepository.findByUser(user)
                 .stream()
-                .map(m -> new WorkspaceResponse(
-                        m.getWorkspace().getId(),
-                        m.getWorkspace().getName(),
-                        m.getWorkspace().getOwner().getUsername()
+                .map(member -> new WorkspaceResponse(
+                        member.getWorkspace().getId(),
+                        member.getWorkspace().getName(),
+                        member.getRole().name(),
+                        workspaceMemberRepository
+                                .findByWorkspaceId(member.getWorkspace().getId())
+                                .size()
                 ))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     // ----------------------------------------------------
@@ -103,10 +100,7 @@ public class WorkspaceController {
         User newUser = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        boolean alreadyMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, newUser.getId());
-
-        if (alreadyMember) {
+        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, newUser.getId())) {
             return "User already exists in workspace";
         }
 
@@ -130,15 +124,12 @@ public class WorkspaceController {
     ) {
         User currentUser = (User) authentication.getPrincipal();
 
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, currentUser.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, currentUser.getId())) {
             throw new AccessDeniedException("You are not a member of this workspace");
         }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         return taskRepository.findByWorkspace(workspace)
                 .stream()
@@ -156,13 +147,7 @@ public class WorkspaceController {
     ) {
         User currentUser = (User) authentication.getPrincipal();
 
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, currentUser.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, currentUser.getId())) {
             throw new AccessDeniedException("You are not a member of this workspace");
         }
 
@@ -173,45 +158,11 @@ public class WorkspaceController {
                         m.getUser().getUsername(),
                         m.getRole().name()
                 ))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     // ----------------------------------------------------
-    // 6️⃣ DELETE MEMBER FROM WORKSPACE (OWNER ONLY)
-    // ----------------------------------------------------
-    @DeleteMapping("/{workspaceId}/members/{userId}")
-    public String removeMember(
-            @PathVariable Long workspaceId,
-            @PathVariable Long userId,
-            Authentication authentication
-    ) {
-        User currentUser = (User) authentication.getPrincipal();
-
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only workspace owner can remove members");
-        }
-
-        if (currentUser.getId().equals(userId)) {
-            throw new IllegalArgumentException("Owner cannot remove himself");
-        }
-
-        WorkspaceMember member = workspaceMemberRepository
-                .findByWorkspaceId(workspaceId)
-                .stream()
-                .filter(m -> m.getUser().getId().equals(userId))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Member not found in workspace"));
-
-        workspaceMemberRepository.delete(member);
-
-        return "Member removed successfully";
-    }
-
-    // ----------------------------------------------------
-    // 7️⃣ DELETE WORKSPACE (OWNER ONLY) 🔥 OPTION A
+    // 6️⃣ DELETE WORKSPACE (OWNER ONLY)
     // ----------------------------------------------------
     @DeleteMapping("/{workspaceId}")
     public String deleteWorkspace(
@@ -223,18 +174,12 @@ public class WorkspaceController {
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
-        // Only OWNER can delete workspace
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("Only workspace owner can delete workspace");
         }
 
-        // 1️⃣ Delete all members
         workspaceMemberRepository.deleteByWorkspaceId(workspaceId);
-
-        // 2️⃣ Delete all tasks
         taskRepository.deleteByWorkspace(workspace);
-
-        // 3️⃣ Delete workspace
         workspaceRepository.delete(workspace);
 
         return "Workspace deleted successfully";

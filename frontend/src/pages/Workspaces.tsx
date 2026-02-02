@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Users, Crown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { workspaceApi } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
 import { CreateWorkspaceModal } from '@/components/workspaces/CreateWorkspaceModal';
 
 interface Workspace {
   id: string;
   name: string;
   description?: string;
-  ownerUsername: string;
+  role: 'OWNER' | 'MEMBER';
   memberCount?: number;
-  deadline?: string;
 }
 
 const Workspaces: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
+
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,26 +31,26 @@ const Workspaces: React.FC = () => {
   const fetchWorkspaces = async () => {
     try {
       setIsLoading(true);
-      const response = await workspaceApi.getAll();
-      setWorkspaces(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch workspaces:', error);
+      const res = await workspaceApi.getAll();
+      setWorkspaces(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch workspaces', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const memberWorkspaces = workspaces.filter(ws => ws.ownerUsername !== user?.username);
-  const adminWorkspaces = workspaces.filter(ws => ws.ownerUsername === user?.username);
+  const adminWorkspaces = workspaces.filter(ws => ws.role === 'OWNER');
+  const memberWorkspaces = workspaces.filter(ws => ws.role === 'MEMBER');
 
-  const filteredWorkspaces = (activeTab === 'member' ? memberWorkspaces : adminWorkspaces)
-    .filter(ws => 
+  const filteredWorkspaces =
+    (activeTab === 'admin' ? adminWorkspaces : memberWorkspaces).filter(ws =>
       ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ws.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-  const handleWorkspaceClick = (workspaceId: string) => {
-    navigate(`/workspaces/${workspaceId}`);
+  const handleWorkspaceClick = (id: string) => {
+    navigate(`/workspaces/${id}`);
   };
 
   const handleWorkspaceCreated = () => {
@@ -74,14 +72,16 @@ const Workspaces: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Workspaces</h1>
-          <p className="text-muted-foreground">Manage and collaborate on your projects</p>
+          <p className="text-muted-foreground">
+            Manage and collaborate on your projects
+          </p>
         </div>
-        
+
         {activeTab === 'admin' && (
           <Button
             variant="gradient"
-            onClick={() => setShowCreateModal(true)}
             className="gap-2"
+            onClick={() => setShowCreateModal(true)}
           >
             <Plus size={18} />
             Create Workspace
@@ -94,10 +94,10 @@ const Workspaces: React.FC = () => {
         <button
           onClick={() => setActiveTab('member')}
           className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+            'px-4 py-2 rounded-lg text-sm font-medium transition-all',
             activeTab === 'member'
-              ? "bg-primary/10 text-primary border border-primary/20"
-              : "text-muted-foreground hover:bg-muted"
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-muted-foreground hover:bg-muted'
           )}
         >
           <span className="flex items-center gap-2">
@@ -105,13 +105,14 @@ const Workspaces: React.FC = () => {
             Member ({memberWorkspaces.length})
           </span>
         </button>
+
         <button
           onClick={() => setActiveTab('admin')}
           className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+            'px-4 py-2 rounded-lg text-sm font-medium transition-all',
             activeTab === 'admin'
-              ? "bg-primary/10 text-primary border border-primary/20"
-              : "text-muted-foreground hover:bg-muted"
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-muted-foreground hover:bg-muted'
           )}
         >
           <span className="flex items-center gap-2">
@@ -123,33 +124,32 @@ const Workspaces: React.FC = () => {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          size={18}
+        />
         <Input
           placeholder="Search workspaces..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-10"
         />
       </div>
 
-      {/* Workspaces Grid */}
+      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredWorkspaces.map((workspace) => (
+        {filteredWorkspaces.map(ws => (
           <div
-            key={workspace.id}
-            onClick={() => handleWorkspaceClick(workspace.id)}
+            key={ws.id}
+            onClick={() => handleWorkspaceClick(ws.id)}
             className="glass rounded-xl p-5 card-hover cursor-pointer group"
           >
             <div className="flex items-start justify-between mb-3">
-              <div 
-                className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold",
-                  "bg-gradient-to-br from-primary/50 to-secondary/50"
-                )}
-              >
-                {workspace.name.charAt(0).toUpperCase()}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold bg-gradient-to-br from-primary/50 to-secondary/50">
+                {ws.name.charAt(0).toUpperCase()}
               </div>
-              {workspace.ownerUsername === user?.username && (
+
+              {ws.role === 'OWNER' && (
                 <span className="text-xs px-2 py-1 rounded-full bg-warning/20 text-warning">
                   Owner
                 </span>
@@ -157,20 +157,18 @@ const Workspaces: React.FC = () => {
             </div>
 
             <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-              {workspace.name}
+              {ws.name}
             </h3>
-            
-            {workspace.description && (
+
+            {ws.description && (
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {workspace.description}
+                {ws.description}
               </p>
             )}
 
-            <div className="flex items-center gap-3 mt-4 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Users size={12} />
-                {workspace.memberCount || 1} members
-              </span>
+            <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
+              <Users size={12} />
+              {ws.memberCount ?? 1} members
             </div>
           </div>
         ))}
@@ -180,22 +178,29 @@ const Workspaces: React.FC = () => {
             <div className="glass rounded-xl p-8 max-w-md mx-auto">
               {activeTab === 'admin' ? (
                 <>
-                  <Crown className="mx-auto text-muted-foreground mb-4" size={48} />
-                  <h3 className="font-semibold text-lg mb-2">No workspaces yet</h3>
+                  <Crown size={48} className="mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">
+                    No workspaces yet
+                  </h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Create your first workspace to start collaborating with your team.
+                    Create your first workspace to start collaborating.
                   </p>
-                  <Button variant="gradient" onClick={() => setShowCreateModal(true)}>
+                  <Button
+                    variant="gradient"
+                    onClick={() => setShowCreateModal(true)}
+                  >
                     <Plus size={18} className="mr-2" />
                     Create Workspace
                   </Button>
                 </>
               ) : (
                 <>
-                  <Users className="mx-auto text-muted-foreground mb-4" size={48} />
-                  <h3 className="font-semibold text-lg mb-2">No workspaces found</h3>
+                  <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">
+                    No workspaces found
+                  </h3>
                   <p className="text-muted-foreground text-sm">
-                    You haven't been added to any workspaces yet.
+                    You are not a member of any workspace yet.
                   </p>
                 </>
               )}
@@ -204,7 +209,7 @@ const Workspaces: React.FC = () => {
         )}
       </div>
 
-      {/* Create Workspace Modal */}
+      {/* Create Modal */}
       <CreateWorkspaceModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

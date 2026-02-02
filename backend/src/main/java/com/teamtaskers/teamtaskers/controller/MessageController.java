@@ -49,12 +49,12 @@ public class MessageController {
         validateWorkspaceMembership(workspaceId, user.getId());
 
         return messageRepository
-                .findMessagesWithSenderByWorkspace(workspace) // ✅ FIXED METHOD
+                .findMessagesWithSenderByWorkspace(workspace)
                 .stream()
                 .map(message -> new MessageResponse(
                         message.getId(),
                         message.getSender().getId(),
-                        message.getSender().getEmail(),
+                        message.getSender().getUsername(), // ✅ ONLY CHANGE
                         message.getContent(),
                         message.getCreatedAt()
                 ))
@@ -85,7 +85,7 @@ public class MessageController {
         return new MessageResponse(
                 savedMessage.getId(),
                 user.getId(),
-                user.getEmail(),
+                user.getUsername(), // ✅ ONLY CHANGE
                 savedMessage.getContent(),
                 savedMessage.getCreatedAt()
         );

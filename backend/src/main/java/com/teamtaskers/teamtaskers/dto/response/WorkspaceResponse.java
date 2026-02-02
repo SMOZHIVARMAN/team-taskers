@@ -4,15 +4,18 @@ public class WorkspaceResponse {
 
     private Long id;
     private String name;
-    private String owner;
+    private String role;       // OWNER | MEMBER
+    private int memberCount;
 
-    public WorkspaceResponse(Long id, String name, String owner) {
+    public WorkspaceResponse(Long id, String name, String role, int memberCount) {
         this.id = id;
         this.name = name;
-        this.owner = owner;
+        this.role = role;
+        this.memberCount = memberCount;
     }
 
     public Long getId() { return id; }
     public String getName() { return name; }
-    public String getOwner() { return owner; }
+    public String getRole() { return role; }
+    public int getMemberCount() { return memberCount; }
 }
