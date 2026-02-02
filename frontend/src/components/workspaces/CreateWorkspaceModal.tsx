@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Calendar, Users } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,8 +16,6 @@ interface CreateWorkspaceModalProps {
 
 const workspaceSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be less than 50 characters'),
-  description: z.string().max(200, 'Description must be less than 200 characters').optional(),
-  deadline: z.string().optional(),
 });
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
@@ -28,7 +26,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
   onSuccess,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [memberInputs, setMemberInputs] = useState<string[]>(['']);
   const { toast } = useToast();
 
   const {
@@ -40,37 +37,12 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
     resolver: zodResolver(workspaceSchema),
   });
 
-  const handleAddMemberField = () => {
-    setMemberInputs([...memberInputs, '']);
-  };
-
-  const handleRemoveMemberField = (index: number) => {
-    setMemberInputs(memberInputs.filter((_, i) => i !== index));
-  };
-
-  const handleMemberChange = (index: number, value: string) => {
-    const newInputs = [...memberInputs];
-    newInputs[index] = value;
-    setMemberInputs(newInputs);
-  };
-
   const onSubmit = async (data: WorkspaceFormData) => {
     setIsLoading(true);
     try {
-      // Create workspace
-      const response = await workspaceApi.create({
+      await workspaceApi.create({
         name: data.name,
-        description: data.description || '',
-        deadline: data.deadline,
       });
-
-      const workspaceId = response.data.id;
-
-      // Add members if any
-      const validMembers = memberInputs.filter(m => m.trim().length > 0);
-      if (validMembers.length > 0) {
-        await workspaceApi.addMembers(workspaceId, validMembers);
-      }
 
       toast({
         title: "Workspace created!",
@@ -78,7 +50,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
       });
 
       reset();
-      setMemberInputs(['']);
       onSuccess();
     } catch (error: any) {
       toast({
@@ -121,68 +92,6 @@ export const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name.message}</p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <textarea
-                {...register('description')}
-                placeholder="Brief description of the project..."
-                className="flex w-full rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                rows={3}
-              />
-              {errors.description && (
-                <p className="text-xs text-destructive">{errors.description.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Calendar size={14} />
-                Deadline (Optional)
-              </label>
-              <Input
-                {...register('deadline')}
-                type="date"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Users size={14} />
-                Add Members
-              </label>
-              <div className="space-y-2">
-                {memberInputs.map((member, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={member}
-                      onChange={(e) => handleMemberChange(index, e.target.value)}
-                      placeholder="Enter username"
-                    />
-                    {memberInputs.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveMemberField(index)}
-                      >
-                        <X size={16} />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddMemberField}
-                  className="gap-2"
-                >
-                  <Plus size={14} />
-                  Add Another Member
-                </Button>
-              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">

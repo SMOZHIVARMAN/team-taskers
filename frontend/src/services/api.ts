@@ -106,12 +106,10 @@ export const workspaceApi = {
 
   create: (data: {
     name: string;
-    description: string;
-    deadline?: string;
   }) => api.post("/workspaces", data),
 
-  addMembers: (workspaceId: string, usernames: string[]) =>
-    api.post(`/workspaces/${workspaceId}/members`, { usernames }),
+  addMember: (workspaceId: string, data: { username: string; role: string }) =>
+    api.post(`/workspaces/${workspaceId}/members`, data),
 
   removeMember: (workspaceId: string, username: string) =>
     api.delete(`/workspaces/${workspaceId}/members/${username}`),

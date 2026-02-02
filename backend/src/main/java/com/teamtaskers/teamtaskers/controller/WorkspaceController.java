@@ -11,6 +11,8 @@ import com.teamtaskers.teamtaskers.model.*;
 import com.teamtaskers.teamtaskers.repository.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.teamtaskers.teamtaskers.dto.response.WorkspaceDetailResponse;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -159,6 +161,32 @@ public class WorkspaceController {
                         m.getRole().name()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/{workspaceId}")
+    public WorkspaceDetailResponse getWorkspaceById(
+            @PathVariable Long workspaceId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, currentUser.getId())) {
+            throw new AccessDeniedException("You are not a member of this workspace");
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
+
+        List<WorkspaceMemberResponse> members = workspaceMemberRepository.findByWorkspaceId(workspaceId)
+                .stream()
+                .map(m -> new WorkspaceMemberResponse(
+                        m.getUser().getId(),
+                        m.getUser().getUsername(),
+                        m.getRole().name()
+                ))
+                .collect(Collectors.toList());
+
+        return new WorkspaceDetailResponse(workspace, members);
     }
 
     // ----------------------------------------------------
