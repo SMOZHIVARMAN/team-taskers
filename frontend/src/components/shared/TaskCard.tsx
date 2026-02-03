@@ -1,5 +1,4 @@
 import { CheckCircle2, Trash2, Clock, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
@@ -31,37 +30,47 @@ export const TaskCard = ({
   compact = false,
 }: TaskCardProps) => {
   return (
-    <div className="glass rounded-xl px-4 py-3 flex items-center justify-between gap-4">
-      
-      {/* LEFT SIDE */}
+    <div className="glass rounded-xl px-4 py-4 flex items-center justify-between gap-4">
+
+      {/* ================= LEFT SIDE ================= */}
       <div className="flex-1 min-w-0">
-        <div className="inline-block px-3 py-1 rounded-md bg-yellow-400 text-black font-semibold text-sm">
+
+        {/* TASK TITLE */}
+        <div className="inline-block px-3 py-1 rounded-md bg-[#00F5DC] text-black font-semibold text-sm">
           {title}
         </div>
 
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">
+        {/* DESCRIPTION — spaced properly */}
+        {description && !compact && (
+          <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
             {description}
           </p>
         )}
 
-        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-          {assignee && (
-            <span className="flex items-center gap-1">
-              <User size={12} /> {assignee}
-            </span>
-          )}
-          {dueDate && (
-            <span className="flex items-center gap-1">
-              <Clock size={12} />
-              {format(new Date(dueDate), 'MMM d')}
-            </span>
-          )}
-        </div>
+        {/* META INFO */}
+        {!compact && (
+          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+            {dueDate && (
+              <span className="flex items-center gap-1">
+                <Clock size={12} />
+                {format(new Date(dueDate), 'MMM d')}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* RIGHT SIDE ACTIONS */}
+      {/* ================= RIGHT SIDE ================= */}
       <div className="flex items-center gap-3 shrink-0">
+
+        {/* ASSIGNEE BADGE */}
+        {assignee && (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold text-black
+            bg-gradient-to-r from-cyan-400 to-purple-400">
+            {assignee}
+          </span>
+        )}
+
         {/* STATUS */}
         {status !== 'completed' && (
           <span className="px-2 py-1 rounded-full text-xs bg-orange-500/20 text-orange-400">
