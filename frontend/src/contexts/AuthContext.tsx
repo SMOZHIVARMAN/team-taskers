@@ -10,7 +10,9 @@ import { authApi, userApi } from "@/services/api";
 /* ===============================
    Types
 ================================ */
-interface User {
+
+/* ✅ EXPORT User so other files can use it */
+export interface User {
   id: number;
   username: string;
   email: string;
@@ -80,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   /* ===============================
-     ✅ FIXED LOGIN (IMPORTANT)
+     Login
   ================================ */
   const login = async (username: string, password: string) => {
     // 🔹 Backend returns TOKEN STRING
@@ -105,7 +107,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(meRes.data);
       localStorage.setItem("user", JSON.stringify(meRes.data));
     } catch {
-      // If /me not ready yet, allow login anyway
       setUser(null);
     }
   };
