@@ -8,12 +8,19 @@ import { Input } from '@/components/ui/input';
 import { taskApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
+/* ✅ FIX 1: Correct member type */
+interface WorkspaceMember {
+  userId: number;
+  username: string;
+  role: string;
+}
+
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   workspaceId: string;
-  members: string[];
+  members: WorkspaceMember[];
 }
 
 const taskSchema = z.object({
@@ -78,11 +85,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 animate-scale-in">
         <div className="glass rounded-xl p-6 m-4">
@@ -96,10 +103,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-medium">Task Title</label>
-              <Input
-                {...register('title')}
-                placeholder="e.g. Design homepage mockup"
-              />
+              <Input {...register('title')} placeholder="e.g. Design homepage mockup" />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
               )}
@@ -124,10 +128,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   <Calendar size={14} />
                   Due Date
                 </label>
-                <Input
-                  {...register('dueDate')}
-                  type="datetime-local"
-                />
+                <Input {...register('dueDate')} type="datetime-local" />
               </div>
 
               <div className="space-y-2">
@@ -135,14 +136,20 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   <User size={14} />
                   Assign To
                 </label>
+
                 <select
                   {...register('assignee')}
                   className="flex h-11 w-full rounded-lg border border-border bg-muted/50 px-4 py-2 text-sm text-foreground shadow-sm transition-all duration-200 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="">Unassigned</option>
+
+                  {/* ✅ FIX 2: Render primitives only */}
                   {members.map((member) => (
-                    <option key={member} value={member}>
-                      {member}
+                    <option
+                      key={member.userId}
+                      value={member.username}
+                    >
+                      {member.username} ({member.role})
                     </option>
                   ))}
                 </select>

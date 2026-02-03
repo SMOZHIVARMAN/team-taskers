@@ -45,8 +45,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onStatusChange,
   compact = false,
 }) => {
-  const config = statusConfig[status];
+
+  console.log('Task status:', status);
+  const config = statusConfig[status] ?? statusConfig.pending;
   const StatusIcon = config.icon;
+
 
   const handleStatusChange = (newStatus: string) => {
     if (onStatusChange) {
