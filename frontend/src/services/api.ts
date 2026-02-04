@@ -119,10 +119,7 @@ export const workspaceApi = {
 };
 
 /* ===============================
-   TASK API
-================================ */
-/* ===============================
-   TASK API ✅ FIXED
+   TASK API ✅ UPDATED
 ================================ */
 export const taskApi = {
   getMyTasks: () => api.get("/tasks/my"),
@@ -147,12 +144,19 @@ export const taskApi = {
   updateDueDate: (taskId: string, dueDate: string) =>
     api.put(`/tasks/${taskId}/due-date`, { dueDate }),
 
-  // ✅ BACKEND-CORRECT ASSIGN API
+  // Assign task to user
   assign: (taskId: string, userId: string) =>
     api.put(`/tasks/${taskId}/assign/${userId}`),
 
+  // Delete task
   delete: (taskId: string) =>
     api.delete(`/tasks/${taskId}`),
+
+  // ✅ NEW: Calendar support (THIS FIXES THE ERROR)
+  getByDateRange: (start: string, end: string) =>
+    api.get("/tasks/calendar", {
+      params: { start, end },
+    }),
 };
 
 
