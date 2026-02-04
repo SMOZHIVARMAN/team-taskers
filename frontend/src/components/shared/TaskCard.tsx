@@ -12,7 +12,7 @@ interface TaskCardProps {
 
   canDelete?: boolean;
   onDelete?: (taskId: string) => void;
-  onStatusChange?: (taskId: string, status: string) => void;
+  onStatusChange?: (taskId: string) => void;
 
   compact?: boolean;
 }
@@ -27,75 +27,68 @@ export const TaskCard = ({
   canDelete,
   onDelete,
   onStatusChange,
-  compact = false,
 }: TaskCardProps) => {
   return (
     <div className="glass rounded-xl px-4 py-4 flex items-center justify-between gap-4">
 
-      {/* ================= LEFT SIDE ================= */}
-      <div className="flex-1 min-w-0">
-
+      {/* LEFT */}
+      <div className="flex-1 min-w-0 space-y-2">
         {/* TASK TITLE */}
         <div className="inline-block px-3 py-1 rounded-md bg-[#00F5DC] text-black font-semibold text-sm">
           {title}
         </div>
 
-        {/* DESCRIPTION — spaced properly */}
-        {description && !compact && (
-          <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+        {/* DESCRIPTION */}
+        {description && (
+          <p className="text-xs text-muted-foreground mt-2">
             {description}
           </p>
         )}
 
-        {/* META INFO */}
-        {!compact && (
-          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            {dueDate && (
-              <span className="flex items-center gap-1">
-                <Clock size={12} />
-                {format(new Date(dueDate), 'MMM d')}
-              </span>
-            )}
-          </div>
-        )}
+        {/* META */}
+        <div className="flex items-center gap-3 mt-2 text-xs">
+          {assignee && (
+            <span className="px-2 py-1 rounded-md bg-gradient-to-r from-cyan-400 to-purple-400 text-black font-medium flex items-center gap-1">
+              <User size={12} />
+              {assignee}
+            </span>
+          )}
+
+          {dueDate && (
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Clock size={12} />
+              {format(new Date(dueDate), 'MMM d')}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* ================= RIGHT SIDE ================= */}
+      {/* RIGHT ACTIONS */}
       <div className="flex items-center gap-3 shrink-0">
-
-        {/* ASSIGNEE BADGE */}
-        {assignee && (
-          <span className="px-3 py-1 rounded-full text-xs font-semibold text-black
-            bg-gradient-to-r from-cyan-400 to-purple-400">
-            {assignee}
-          </span>
-        )}
-
-        {/* STATUS */}
         {status !== 'completed' && (
           <span className="px-2 py-1 rounded-full text-xs bg-orange-500/20 text-orange-400">
             In Progress
           </span>
         )}
 
-        {/* COMPLETE BUTTON */}
+        {/* COMPLETE */}
         {onStatusChange && status !== 'completed' && (
           <Button
             size="icon"
             variant="ghost"
-            className="text-success hover:text-success"
-            onClick={() => onStatusChange(id, 'COMPLETED')}
+            className="text-success"
+            onClick={() => onStatusChange(id)}
           >
             <CheckCircle2 size={18} />
           </Button>
         )}
 
-        {/* DELETE BUTTON */}
+        {/* DELETE */}
         {canDelete && onDelete && (
           <Button
             size="icon"
             variant="ghost"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive"
             onClick={() => onDelete(id)}
           >
             <Trash2 size={18} />
@@ -104,4 +97,6 @@ export const TaskCard = ({
       </div>
     </div>
   );
+
+
 };

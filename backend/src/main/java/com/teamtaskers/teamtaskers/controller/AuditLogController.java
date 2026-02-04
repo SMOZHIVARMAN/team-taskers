@@ -5,6 +5,7 @@ import com.teamtaskers.teamtaskers.model.AuditLog;
 import com.teamtaskers.teamtaskers.repository.AuditLogRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,7 +27,7 @@ public class AuditLogController {
 
         return auditLogRepository.findAll()
                 .stream()
-                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .sorted(Comparator.comparing(AuditLog::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(log -> new AuditLogResponse(
                         log.getId(),
                         log.getAction(),

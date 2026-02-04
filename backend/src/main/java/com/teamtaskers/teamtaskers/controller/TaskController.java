@@ -27,9 +27,9 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 1️⃣ GET TASKS BY WORKSPACE
-    // ----------------------------------------------------
+    // ====================================================
     @GetMapping("/workspace/{workspaceId}")
     public ResponseEntity<List<TaskResponse>> getTasksByWorkspace(
             @PathVariable Long workspaceId,
@@ -46,9 +46,9 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 2️⃣ CREATE TASK
-    // ----------------------------------------------------
+    // ====================================================
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(
             @RequestBody @Valid CreateTaskRequest request,
@@ -60,9 +60,9 @@ public class TaskController {
         return ResponseEntity.ok(new TaskResponse(task));
     }
 
-    // ----------------------------------------------------
-    // 3️⃣ UPDATE TASK STATUS
-    // ----------------------------------------------------
+    // ====================================================
+    // 3️⃣ UPDATE TASK STATUS ✅ (FIXED & SAFE)
+    // ====================================================
     @PutMapping("/{taskId}/status")
     public ResponseEntity<TaskResponse> updateTaskStatus(
             @PathVariable Long taskId,
@@ -80,9 +80,9 @@ public class TaskController {
         return ResponseEntity.ok(new TaskResponse(updatedTask));
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 4️⃣ ASSIGN / REASSIGN TASK
-    // ----------------------------------------------------
+    // ====================================================
     @PutMapping("/{taskId}/assign/{userId}")
     public ResponseEntity<TaskResponse> assignTask(
             @PathVariable Long taskId,
@@ -95,9 +95,9 @@ public class TaskController {
         return ResponseEntity.ok(new TaskResponse(task));
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 5️⃣ GET MY TASKS
-    // ----------------------------------------------------
+    // ====================================================
     @GetMapping("/my")
     public ResponseEntity<List<TaskResponse>> getMyTasks(
             Authentication authentication
@@ -113,9 +113,9 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 6️⃣ DELETE TASK (OWNER ONLY)
-    // ----------------------------------------------------
+    // ====================================================
     @DeleteMapping("/{taskId}")
     public ResponseEntity<String> deleteTask(
             @PathVariable Long taskId,
@@ -126,9 +126,9 @@ public class TaskController {
         return ResponseEntity.ok("Task deleted successfully");
     }
 
-    // ----------------------------------------------------
-    // 📅 CALENDAR APIs (NEW)
-    // ----------------------------------------------------
+    // ====================================================
+    // 📅 CALENDAR APIs
+    // ====================================================
 
     // 7️⃣ UPDATE TASK DUE DATE
     @PutMapping("/{taskId}/due-date")
@@ -148,7 +148,7 @@ public class TaskController {
         return ResponseEntity.ok(new TaskResponse(updatedTask));
     }
 
-    // 8️⃣ GET TASKS FOR A SPECIFIC DATE (DAY VIEW)
+    // 8️⃣ GET TASKS FOR A SPECIFIC DATE
     @GetMapping("/workspace/{workspaceId}/date")
     public ResponseEntity<List<TaskResponse>> getTasksByDate(
             @PathVariable Long workspaceId,
@@ -168,7 +168,7 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    // 9️⃣ GET TASKS BY DATE RANGE (WEEK / MONTH VIEW)
+    // 9️⃣ GET TASKS BY DATE RANGE
     @GetMapping("/workspace/{workspaceId}/range")
     public ResponseEntity<List<TaskResponse>> getTasksByDateRange(
             @PathVariable Long workspaceId,

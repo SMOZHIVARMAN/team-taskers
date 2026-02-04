@@ -21,21 +21,29 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // ✅ Enable CORS (uses CorsConfigurationSource)
+                // ✅ Enable CORS
                 .cors(cors -> {})
 
                 // ❌ Disable CSRF (JWT based)
                 .csrf(csrf -> csrf.disable())
 
-                // ❌ No sessions (stateless JWT)
+                // ❌ Stateless session (JWT)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 // ✅ Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // allow CORS preflight
+
+                        // allow preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // ✅ Swagger / OpenAPI (VERY IMPORTANT)
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
                         // allow auth APIs
                         .requestMatchers("/api/auth/**").permitAll()

@@ -50,6 +50,10 @@ public class AuditLog {
         this.action = action;
         this.entityType = entityType;
         this.entityId = entityId;
+    }
+
+    @PrePersist
+    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 

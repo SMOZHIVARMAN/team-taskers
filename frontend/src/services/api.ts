@@ -121,38 +121,40 @@ export const workspaceApi = {
 /* ===============================
    TASK API
 ================================ */
+/* ===============================
+   TASK API ✅ FIXED
+================================ */
 export const taskApi = {
   getMyTasks: () => api.get("/tasks/my"),
 
   getByWorkspace: (workspaceId: string) =>
     api.get(`/tasks/workspace/${workspaceId}`),
 
-  getByDate: (date: string) =>
-    api.get("/tasks/date", { params: { date } }),
-
-  getByDateRange: (startDate: string, endDate: string) =>
-    api.get("/tasks/date-range", { params: { startDate, endDate } }),
-
   create: (data: {
     title: string;
     description: string;
     workspaceId: string;
-    assigneeUsername?: string;
     dueDate?: string;
-  }) => api.post("/tasks", data),
+  }) =>
+    api.post("/tasks", data),
 
-  updateStatus: (taskId: string, status: string) =>
+  updateStatus: (
+    taskId: string,
+    status: "TODO" | "IN_PROGRESS" | "COMPLETED"
+  ) =>
     api.put(`/tasks/${taskId}/status`, { status }),
 
   updateDueDate: (taskId: string, dueDate: string) =>
     api.put(`/tasks/${taskId}/due-date`, { dueDate }),
 
-  assign: (taskId: string, username: string) =>
-    api.put(`/tasks/${taskId}/assign`, { username }),
+  // ✅ BACKEND-CORRECT ASSIGN API
+  assign: (taskId: string, userId: string) =>
+    api.put(`/tasks/${taskId}/assign/${userId}`),
 
   delete: (taskId: string) =>
     api.delete(`/tasks/${taskId}`),
 };
+
 
 /* ===============================
    CHAT API ✅ FIXED

@@ -21,9 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-/* ===============================
-   Types
-================================ */
+/* ================= TYPES ================= */
 interface WorkspaceMember {
   id: number;
   username: string;
@@ -41,7 +39,7 @@ interface Task {
   id: string;
   title: string;
   description?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
   dueDate?: string;
   assignee?: {
     username: string;
@@ -55,9 +53,6 @@ interface Message {
   timestamp: string;
 }
 
-/* ===============================
-   Component
-================================ */
 const WorkspaceDetail: React.FC = () => {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
@@ -75,9 +70,7 @@ const WorkspaceDetail: React.FC = () => {
 
   const isOwner = workspace?.ownerId === user?.id;
 
-  /* ===============================
-     Fetch data
-  ================================ */
+  /* ============ FETCH DATA ============ */
   useEffect(() => {
     if (workspaceId) fetchAll();
   }, [workspaceId]);
@@ -94,6 +87,7 @@ const WorkspaceDetail: React.FC = () => {
         taskApi.getByWorkspace(workspaceId!),
         chatApi.getMessages(workspaceId!),
       ]);
+
       setWorkspace(w.data);
       setTasks(t.data || []);
       setMessages(c.data || []);
@@ -108,14 +102,23 @@ const WorkspaceDetail: React.FC = () => {
     }
   };
 
-  /* ===============================
-     Task actions
-  ================================ */
+  /* ============ TASK ACTIONS ============ */
   const handleComplete = async (taskId: string) => {
-    await taskApi.updateStatus(taskId, 'COMPLETED');
-    setTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, status: 'COMPLETED' } : t))
-    );
+    try {
+      await taskApi.updateStatus(taskId, 'COMPLETED');
+
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId ? { ...t, status: 'COMPLETED' } : t
+        )
+      );
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to complete task',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -129,9 +132,7 @@ const WorkspaceDetail: React.FC = () => {
     navigate('/workspaces');
   };
 
-  /* ===============================
-     Members
-  ================================ */
+  /* ============ MEMBERS ============ */
   const handleAddMember = async () => {
     if (!newMemberName.trim()) return;
     await workspaceApi.addMember(workspaceId!, {
@@ -148,9 +149,7 @@ const WorkspaceDetail: React.FC = () => {
     fetchAll();
   };
 
-  /* ===============================
-     Chat
-  ================================ */
+  /* ============ CHAT ============ */
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     await chatApi.sendMessage(workspaceId!, newMessage);
@@ -158,13 +157,9 @@ const WorkspaceDetail: React.FC = () => {
     fetchAll();
   };
 
-  /* ===============================
-     Task split
-  ================================ */
+  /* ============ TASK SPLIT ============ */
   const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
-  const completedTasks = tasks.filter(
-    t => t.status === 'COMPLETED' && t.assignee?.username === user?.username
-  );
+  const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
 
   if (loading) {
     return (
@@ -179,9 +174,9 @@ const WorkspaceDetail: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      {/* ================= LEFT: TASKS ================= */}
+      {/* LEFT */}
       <div className="lg:col-span-2 space-y-6">
-        {/* Header */}
+        {/* HEADER */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate('/workspaces')}>
@@ -207,32 +202,32 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Tasks */}
+        {/* ACTIVE TASKS */}
         <div>
           <h2 className="text-lg font-semibold mb-3">
             All Tasks ({activeTasks.length})
           </h2>
 
-          {activeTasks.map(task => {
-            const canComplete =
-              isOwner || task.assignee?.username === user?.username;
-
-            return (
-              <TaskCard
-                key={task.id}
-                id={task.id}
-                title={task.title}
-                description={task.description}
-                status="in_progress"
-                assignee={task.assignee?.username}
-                canDelete={isOwner}
-                onDelete={handleDeleteTask}
-                onStatusChange={canComplete ? handleComplete : undefined}
-              />
-            );
-          })}
+          {activeTasks.map(task => (
+            <TaskCard
+              key={task.id}
+              id={task.id}
+              title={task.title}
+              description={task.description}
+              status={
+                task.status === 'COMPLETED'
+                  ? 'completed'
+                  : 'in_progress'
+              }
+              assignee={task.assignee?.username}
+              canDelete={isOwner}
+              onDelete={handleDeleteTask}
+              onStatusChange={handleComplete}
+            />
+          ))}
         </div>
 
+        {/* COMPLETED TASKS */}
         {completedTasks.length > 0 && (
           <div className="pt-6 border-t">
             <h2 className="text-lg font-semibold text-success flex gap-2">
@@ -244,19 +239,18 @@ const WorkspaceDetail: React.FC = () => {
                 key={task.id}
                 id={task.id}
                 title={task.title}
+                description={task.description}
                 status="completed"
                 assignee={task.assignee?.username}
-                compact
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* ================= RIGHT: MEMBERS + CHAT ================= */}
+      {/* RIGHT */}
       <div className="space-y-6">
-
-        {/* Members */}
+        {/* MEMBERS */}
         <div className="glass rounded-xl p-4">
           <h3 className="text-sm font-semibold flex gap-2 mb-3">
             <Users size={16} /> Members ({workspace.members.length})
@@ -266,11 +260,7 @@ const WorkspaceDetail: React.FC = () => {
             <div key={m.id} className="flex justify-between items-center p-2 rounded hover:bg-muted/30">
               <span>{m.username}</span>
               {isOwner && m.id !== user?.id && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveMember(m.username)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(m.username)}>
                   <UserMinus size={14} />
                 </Button>
               )}
@@ -289,7 +279,7 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Chat */}
+        {/* CHAT */}
         <div className="glass rounded-xl flex flex-col h-[400px]">
           <div className="p-3 border-b">Team Chat</div>
 
@@ -297,13 +287,7 @@ const WorkspaceDetail: React.FC = () => {
             {messages.map(msg => {
               const me = msg.senderUsername === user?.username;
               return (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'max-w-[75%]',
-                    me ? 'ml-auto text-right' : ''
-                  )}
-                >
+                <div key={msg.id} className={cn('max-w-[75%]', me && 'ml-auto text-right')}>
                   <div className={cn(
                     'px-3 py-2 rounded-lg text-sm',
                     me ? 'bg-primary text-primary-foreground' : 'bg-muted'
@@ -332,7 +316,6 @@ const WorkspaceDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Task Modal */}
       <CreateTaskModal
         isOpen={showCreateTask}
         onClose={() => setShowCreateTask(false)}

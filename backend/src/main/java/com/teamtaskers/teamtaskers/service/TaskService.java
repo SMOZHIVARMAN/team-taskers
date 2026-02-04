@@ -97,23 +97,31 @@ public class TaskService {
     // ----------------------------------------------------
     public Task updateTaskStatus(Long taskId, TaskStatus newStatus, User user) {
 
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Task status cannot be null");
+        }
+
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         Workspace workspace = task.getWorkspace();
+        if (workspace == null) {
+            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+        }
 
-        boolean isOwner = workspace.getOwner().getId().equals(user.getId());
-        boolean isAssignee = task.getAssignedTo() != null &&
-                task.getAssignedTo().getId().equals(user.getId());
+        boolean isMember = workspaceMemberRepository
+                .existsByWorkspaceIdAndUserId(
+                        workspace.getId(),
+                        user.getId()
+                );
 
-        if (!isOwner && !isAssignee) {
-            throw new AccessDeniedException("Not allowed to update task status");
+        if (!isMember) {
+            throw new AccessDeniedException("Not a member of this workspace");
         }
 
         task.setStatus(newStatus);
         Task updatedTask = taskRepository.save(task);
 
-        // 🔍 AUDIT LOG
         auditLogService.log(
                 user,
                 "UPDATE_TASK_STATUS",
@@ -123,6 +131,7 @@ public class TaskService {
 
         return updatedTask;
     }
+
 
     // ----------------------------------------------------
     // 4️⃣ ASSIGN / REASSIGN TASK
@@ -136,6 +145,9 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("User to assign not found"));
 
         Workspace workspace = task.getWorkspace();
+        if (workspace == null) {
+            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+        }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
 
@@ -173,6 +185,9 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         Workspace workspace = task.getWorkspace();
+        if (workspace == null) {
+            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+        }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
 
@@ -201,6 +216,11 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
+        Workspace workspace = task.getWorkspace();
+        if (workspace == null) {
+            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+        }
+        
         boolean isMember = workspaceMemberRepository
                 .existsByWorkspaceIdAndUserId(
                         task.getWorkspace().getId(),

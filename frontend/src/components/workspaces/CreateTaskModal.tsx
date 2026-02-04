@@ -8,9 +8,9 @@ import { Input } from '@/components/ui/input';
 import { taskApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
-/* ✅ FIX 1: Correct member type */
+/* ✅ MATCH WorkspaceDetail.tsx member type */
 interface WorkspaceMember {
-  userId: number;
+  id: number;
   username: string;
   role: string;
 }
@@ -51,34 +51,33 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     resolver: zodResolver(taskSchema),
   });
 
-  const onSubmit = async (data: TaskFormData) => {
-    setIsLoading(true);
-    try {
-      await taskApi.create({
-        title: data.title,
-        description: data.description || '',
-        workspaceId,
-        assigneeUsername: data.assignee || undefined,
-        dueDate: data.dueDate || undefined,
-      });
+const onSubmit = async (data: TaskFormData) => {
+  try {
+    await taskApi.create({
+      title: data.title,
+      description: data.description || "",
+      workspaceId,
+      dueDate: data.dueDate || undefined,
+    });
 
-      toast({
-        title: "Task created!",
-        description: `${data.title} has been added.`,
-      });
+    toast({
+      title: "Task created!",
+      description: `"${data.title}" has been added.`,
+    });
 
-      reset();
-      onSuccess();
-    } catch (error: any) {
-      toast({
-        title: "Failed to create task",
-        description: error.response?.data?.message || "An error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    reset();
+    onSuccess();
+    onClose();
+  } catch (error: any) {
+    toast({
+      title: "Failed to create task",
+      description:
+        error.response?.data?.message || "An error occurred.",
+      variant: "destructive",
+    });
+  }
+};
+
 
   if (!isOpen) return null;
 
@@ -101,14 +100,19 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Title */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Task Title</label>
-              <Input {...register('title')} placeholder="e.g. Design homepage mockup" />
+              <Input
+                {...register('title')}
+                placeholder="e.g. Design homepage mockup"
+              />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
               )}
             </div>
 
+            {/* Description */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <textarea
@@ -122,6 +126,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               )}
             </div>
 
+            {/* Due date + Assignee */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -143,10 +148,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 >
                   <option value="">Unassigned</option>
 
-                  {/* ✅ FIX 2: Render primitives only */}
                   {members.map((member) => (
                     <option
-                      key={member.userId}
+                      key={member.id}
                       value={member.username}
                     >
                       {member.username} ({member.role})
@@ -156,6 +160,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </div>
             </div>
 
+            {/* Actions */}
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
