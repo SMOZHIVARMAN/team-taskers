@@ -172,10 +172,11 @@ const WorkspaceDetail: React.FC = () => {
   if (!workspace) return null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-10rem)]">
 
       {/* LEFT */}
-      <div className="lg:col-span-2 space-y-6">
+      {/* SECTION: Tasks Section (Left Main Panel) */}
+      <div className="lg:w-2/3 flex flex-col">
         {/* HEADER */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -202,73 +203,83 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* ACTIVE TASKS */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3">
-            All Tasks ({activeTasks.length})
-          </h2>
-
-          {activeTasks.map(task => (
-            <TaskCard
-              key={task.id}
-              id={task.id}
-              title={task.title}
-              description={task.description}
-              status={
-                task.status === 'COMPLETED'
-                  ? 'completed'
-                  : 'in_progress'
-              }
-              assignee={task.assignee?.username}
-              canDelete={isOwner}
-              onDelete={handleDeleteTask}
-              onStatusChange={handleComplete}
-            />
-          ))}
-        </div>
-
-        {/* COMPLETED TASKS */}
-        {completedTasks.length > 0 && (
-          <div className="pt-6 border-t">
-            <h2 className="text-lg font-semibold text-success flex gap-2">
-              <CheckCircle2 size={18} /> Completed Tasks
+        {/* All Tasks and Completed Tasks Container */}
+        <div className="flex-1 flex flex-col mt-4 overflow-hidden">
+          {/* All Tasks */}
+          <div className="flex-[2] overflow-y-auto pr-2 -mr-2">
+            <h2 className="text-lg font-semibold mb-3">
+              All Tasks ({activeTasks.length})
             </h2>
 
-            {completedTasks.map(task => (
-              <TaskCard
-                key={task.id}
-                id={task.id}
-                title={task.title}
-                description={task.description}
-                status="completed"
-                assignee={task.assignee?.username}
-              />
-            ))}
+            <div className="space-y-3">
+              {activeTasks.map(task => (
+                <TaskCard
+                  key={task.id}
+                  id={task.id}
+                  title={task.title}
+                  description={task.description}
+                  status={
+                    task.status === 'COMPLETED'
+                      ? 'completed'
+                      : 'in_progress'
+                  }
+                  assignee={task.assignee?.username}
+                  canDelete={isOwner}
+                  onDelete={handleDeleteTask}
+                  onStatusChange={handleComplete}
+                />
+              ))}
+            </div>
           </div>
-        )}
+
+          {/* Completed Tasks */}
+          {completedTasks.length > 0 && (
+            <div className="flex-[1] pt-4 border-t mt-4 overflow-y-auto pr-2 -mr-2">
+              <h2 className="text-lg font-semibold text-success flex gap-2 mb-3">
+                <CheckCircle2 size={18} /> Completed Tasks
+              </h2>
+
+              <div className="space-y-3">
+                {completedTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    id={task.id}
+                    title={task.title}
+                    description={task.description}
+                    status="completed"
+                    assignee={task.assignee?.username}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* RIGHT */}
-      <div className="space-y-6">
-        {/* MEMBERS */}
-        <div className="glass rounded-xl p-4">
+      {/* SECTION: Right Panel (Team Members + Chat) */}
+      <div className="lg:w-1/3 flex flex-col gap-6">
+        {/* Team Members */}
+        <div className="glass rounded-xl p-4 flex flex-col h-1/3">
           <h3 className="text-sm font-semibold flex gap-2 mb-3">
             <Users size={16} /> Members ({workspace.members.length})
           </h3>
 
-          {workspace.members.map(m => (
-            <div key={m.id} className="flex justify-between items-center p-2 rounded hover:bg-muted/30">
-              <span>{m.username}</span>
-              {isOwner && m.id !== user?.id && (
-                <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(m.username)}>
-                  <UserMinus size={14} />
-                </Button>
-              )}
-            </div>
-          ))}
+          <div className="overflow-y-auto pr-2 -mr-2 space-y-1">
+            {workspace.members.map(m => (
+              <div key={m.id} className="flex justify-between items-center p-2 rounded hover:bg-muted/30">
+                <span>{m.username}</span>
+                {isOwner && m.id !== user?.id && (
+                  <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(m.username)}>
+                    <UserMinus size={14} />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
 
           {isOwner && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-auto pt-4 border-t">
               <Input
                 placeholder="Add username"
                 value={newMemberName}
@@ -279,8 +290,8 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* CHAT */}
-        <div className="glass rounded-xl flex flex-col h-[400px]">
+        {/* Team Chat */}
+        <div className="glass rounded-xl flex flex-col h-2/3">
           <div className="p-3 border-b">Team Chat</div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
