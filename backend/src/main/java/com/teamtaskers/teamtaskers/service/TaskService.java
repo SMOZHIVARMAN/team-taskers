@@ -35,37 +35,31 @@ public class TaskService {
         this.auditLogService = auditLogService;
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 1️⃣ GET TASKS BY WORKSPACE
-    // ----------------------------------------------------
+    // ====================================================
     public List<Task> getTasksByWorkspace(Long workspaceId, User user) {
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, user.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
             throw new AccessDeniedException("Not a member of this workspace");
         }
 
         return taskRepository.findByWorkspace(workspace);
     }
 
-    // ----------------------------------------------------
-    // 2️⃣ CREATE TASK
-    // ----------------------------------------------------
+    // ====================================================
+    // 2️⃣ CREATE TASK (WITH ASSIGNMENT)
+    // ====================================================
     public Task createTask(CreateTaskRequest request, User user) {
 
         Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
-
-        if (!isMember) {
-            throw new AccessDeniedException("You are not a member of this workspace");
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspace.getId(), user.getId())) {
+            throw new AccessDeniedException("Not a member of this workspace");
         }
 
         Task task = new Task();
@@ -75,9 +69,20 @@ public class TaskService {
         task.setStatus(TaskStatus.TODO);
         task.setDueDate(request.getDueDate());
 
+        // ✅ ASSIGN USER DURING CREATION
+        if (request.getAssignedUserId() != null) {
+            User assignee = userRepository.findById(request.getAssignedUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Assigned user not found"));
+
+            if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspace.getId(), assignee.getId())) {
+                throw new AccessDeniedException("Assigned user is not a workspace member");
+            }
+
+            task.setAssignedTo(assignee);
+        }
+
         Task savedTask = taskRepository.save(task);
 
-        // ✅ FIXED AUDIT LOG
         auditLogService.log(
                 workspace,
                 user,
@@ -89,104 +94,85 @@ public class TaskService {
         return savedTask;
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 3️⃣ UPDATE TASK STATUS
-    // ----------------------------------------------------
+    // ====================================================
     public Task updateTaskStatus(Long taskId, TaskStatus newStatus, User user) {
-
-        if (newStatus == null) {
-            throw new IllegalArgumentException("Task status cannot be null");
-        }
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        Workspace workspace = task.getWorkspace();
-
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+                task.getWorkspace().getId(), user.getId())) {
             throw new AccessDeniedException("Not a member of this workspace");
         }
 
         task.setStatus(newStatus);
-        Task updatedTask = taskRepository.save(task);
+        Task updated = taskRepository.save(task);
 
-        // ✅ FIXED AUDIT LOG
         auditLogService.log(
-                workspace,
+                task.getWorkspace(),
                 user,
                 "UPDATE_TASK_STATUS",
                 "TASK",
-                updatedTask.getId()
+                updated.getId()
         );
 
-        return updatedTask;
+        return updated;
     }
 
-    // ----------------------------------------------------
-    // 4️⃣ ASSIGN TASK
-    // ----------------------------------------------------
+    // ====================================================
+    // 4️⃣ ASSIGN TASK (OWNER ONLY)
+    // ====================================================
     public Task assignTask(Long taskId, Long userId, User currentUser) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        User userToAssign = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User to assign not found"));
-
-        Workspace workspace = task.getWorkspace();
-
-        boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
-
-        if (!isOwner) {
+        if (!task.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("Only workspace owner can assign tasks");
         }
 
-        task.setAssignedTo(userToAssign);
-        Task updatedTask = taskRepository.save(task);
+        User assignee = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // ✅ FIXED AUDIT LOG
+        task.setAssignedTo(assignee);
+        Task updated = taskRepository.save(task);
+
         auditLogService.log(
-                workspace,
+                task.getWorkspace(),
                 currentUser,
                 "ASSIGN_TASK",
                 "TASK",
-                updatedTask.getId()
+                updated.getId()
         );
 
-        return updatedTask;
+        return updated;
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 5️⃣ GET MY TASKS
-    // ----------------------------------------------------
+    // ====================================================
     public List<Task> getMyTasks(User user) {
         return taskRepository.findByAssignedTo(user);
     }
 
-    // ----------------------------------------------------
+    // ====================================================
     // 6️⃣ DELETE TASK
-    // ----------------------------------------------------
+    // ====================================================
     public void deleteTask(Long taskId, User currentUser) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        Workspace workspace = task.getWorkspace();
-
-        boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
-
-        if (!isOwner) {
+        if (!task.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("Only workspace owner can delete tasks");
         }
 
         taskRepository.delete(task);
 
-        // ✅ FIXED AUDIT LOG
         auditLogService.log(
-                workspace,
+                task.getWorkspace(),
                 currentUser,
                 "DELETE_TASK",
                 "TASK",
@@ -195,7 +181,7 @@ public class TaskService {
     }
 
     // ====================================================
-    // 📅 CALENDAR METHODS
+    // 📅 CALENDAR & DATE APIs (REQUIRED BY CONTROLLER)
     // ====================================================
 
     // 7️⃣ UPDATE TASK DUE DATE
@@ -204,76 +190,38 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        Workspace workspace = task.getWorkspace();
-
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+                task.getWorkspace().getId(), user.getId())) {
             throw new AccessDeniedException("Not a member of this workspace");
         }
 
         task.setDueDate(dueDate);
-        Task updatedTask = taskRepository.save(task);
-
-        // ✅ FIXED AUDIT LOG
-        auditLogService.log(
-                workspace,
-                user,
-                "UPDATE_TASK_DUE_DATE",
-                "TASK",
-                updatedTask.getId()
-        );
-
-        return updatedTask;
+        return taskRepository.save(task);
     }
 
-    // 8️⃣ GET TASKS BY WORKSPACE + DATE
-    public List<Task> getTasksByWorkspaceAndDate(
-            Long workspaceId,
-            LocalDate date,
-            User user
-    ) {
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
-
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, user.getId());
-
-        if (!isMember) {
-            throw new AccessDeniedException("Not a member of this workspace");
-        }
-
-        return taskRepository.findTasksByWorkspaceAndDueDate(workspace, date);
-    }
-
-    // 9️⃣ GET TASKS BY WORKSPACE + DATE RANGE
+    // 8️⃣ WORKSPACE DATE RANGE
     public List<Task> getTasksByWorkspaceAndDueDateRange(
             Long workspaceId,
             LocalDate startDate,
             LocalDate endDate,
             User user
     ) {
+
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
-        boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(workspaceId, user.getId());
-
-        if (!isMember) {
+        if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, user.getId())) {
             throw new AccessDeniedException("Not a member of this workspace");
         }
 
-        return taskRepository.findTasksByWorkspaceAndDueDateRange(
+        return taskRepository.findTasksByWorkspaceAndDueDateBetween(
                 workspace,
                 startDate,
                 endDate
         );
     }
 
-    // ====================================================
-    // ✅ 10️⃣ CALENDAR (GLOBAL)
-    // ====================================================
+    // 9️⃣ GLOBAL CALENDAR (USER)
     public List<Task> getTasksForUserBetweenDates(
             User user,
             LocalDate startDate,
@@ -284,5 +232,20 @@ public class TaskService {
                 startDate,
                 endDate
         );
+    }
+
+    // ====================================================
+    // 📊 DASHBOARD STATS
+    // ====================================================
+    public long getTodayTasksCount(User user) {
+        return taskRepository.countByAssignedToAndDueDate(user, LocalDate.now());
+    }
+
+    public long getPendingTasksCount(User user) {
+        return taskRepository.countByAssignedToAndStatus(user, TaskStatus.TODO);
+    }
+
+    public long getCompletedTasksCount(User user) {
+        return taskRepository.countByAssignedToAndStatus(user, TaskStatus.COMPLETED);
     }
 }

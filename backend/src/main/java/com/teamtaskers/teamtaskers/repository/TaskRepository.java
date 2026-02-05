@@ -1,6 +1,7 @@
 package com.teamtaskers.teamtaskers.repository;
 
 import com.teamtaskers.teamtaskers.model.Task;
+import com.teamtaskers.teamtaskers.model.TaskStatus;
 import com.teamtaskers.teamtaskers.model.User;
 import com.teamtaskers.teamtaskers.model.Workspace;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,67 +13,42 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    // ===============================
-    // EXISTING METHODS (UNCHANGED)
-    // ===============================
-
-    // ✅ Get all tasks in a workspace
+    // Workspace tasks
     List<Task> findByWorkspace(Workspace workspace);
 
-    // ✅ Get all tasks assigned to a user (for /api/tasks/my)
-    List<Task> findByAssignedTo(User user);
+    // Assigned tasks
+    List<Task> findByAssignedTo(User assignedTo);
 
-    // ✅ Used when deleting a workspace
-    void deleteByWorkspace(Workspace workspace);
+    // Dashboard counts
+    long countByAssignedToAndDueDate(User assignedTo, LocalDate dueDate);
 
-    // ===============================
-    // 📅 WORKSPACE-BASED CALENDAR
-    // ===============================
+    long countByAssignedToAndStatus(User assignedTo, TaskStatus status);
 
-    // 📆 Get tasks for a specific due date (day view)
+    // Calendar (user-based)
     @Query("""
-        SELECT t
-        FROM Task t
-        WHERE t.workspace = :workspace
-          AND t.dueDate = :date
-    """)
-    List<Task> findTasksByWorkspaceAndDueDate(
-            @Param("workspace") Workspace workspace,
-            @Param("date") LocalDate date
-    );
-
-    // 📅 Get tasks within a due date range (week / month view)
-    @Query("""
-        SELECT t
-        FROM Task t
-        WHERE t.workspace = :workspace
-          AND t.dueDate BETWEEN :startDate AND :endDate
-        ORDER BY t.dueDate ASC
-    """)
-    List<Task> findTasksByWorkspaceAndDueDateRange(
-            @Param("workspace") Workspace workspace,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    // ===============================
-    // ✅ GLOBAL CALENDAR (FIXES 500)
-    // ===============================
-
-    @Query("""
-        SELECT t
-        FROM Task t
-        WHERE (
-              t.assignedTo.id = :userId
-              OR t.workspace.owner.id = :userId
-        )
-        AND t.dueDate IS NOT NULL
-        AND t.dueDate BETWEEN :startDate AND :endDate
-        ORDER BY t.dueDate ASC
+        SELECT t FROM Task t
+        WHERE t.assignedTo.id = :userId
+        AND t.dueDate BETWEEN :start AND :end
     """)
     List<Task> findTasksForUserBetweenDates(
             @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
     );
+
+    // Workspace + date range ✅ FIXED
+    List<Task> findTasksByWorkspaceAndDueDateBetween(
+            Workspace workspace,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
+    // Workspace + exact date
+    List<Task> findTasksByWorkspaceAndDueDate(
+            Workspace workspace,
+            LocalDate date
+    );
+
+    // Delete tasks when workspace is deleted
+    void deleteByWorkspace(Workspace workspace);
 }

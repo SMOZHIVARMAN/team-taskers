@@ -117,9 +117,8 @@ export const workspaceApi = {
 
   delete: (workspaceId: string) => api.delete(`/workspaces/${workspaceId}`),
 };
-
 /* ===============================
-   TASK API ✅ UPDATED
+   TASK API ✅ FIXED
 ================================ */
 export const taskApi = {
   getMyTasks: () => api.get("/tasks/my"),
@@ -129,11 +128,18 @@ export const taskApi = {
 
   create: (data: {
     title: string;
-    description: string;
+    description?: string;
     workspaceId: string;
     dueDate?: string;
+    assignedUserId?: number; // ✅ ADD THIS
   }) =>
-    api.post("/tasks", data),
+    api.post("/tasks", {
+      title: data.title,
+      description: data.description,
+      workspaceId: Number(data.workspaceId),
+      dueDate: data.dueDate,
+      assignedUserId: data.assignedUserId ?? null, // ✅ FORCE SEND
+    }),
 
   updateStatus: (
     taskId: string,
@@ -141,23 +147,8 @@ export const taskApi = {
   ) =>
     api.put(`/tasks/${taskId}/status`, { status }),
 
-  updateDueDate: (taskId: string, dueDate: string) =>
-    api.put(`/tasks/${taskId}/due-date`, { dueDate }),
-
-  // Assign task to user
-  assign: (taskId: string, userId: string) =>
-    api.put(`/tasks/${taskId}/assign/${userId}`),
-
-  // Delete task
   delete: (taskId: string) =>
     api.delete(`/tasks/${taskId}`),
-
-  // ✅ NEW: Calendar support (THIS FIXES THE ERROR)
- getCalendarTasks: (start: string, end: string) =>
-  api.get("/tasks/calendar", {
-    params: { start, end },
-  }),
-
 };
 
 
@@ -178,6 +169,12 @@ export const chatApi = {
 export const auditApi = {
   getByWorkspace: (workspaceId: number) =>
     api.get(`/audit/workspace/${workspaceId}`),
+};
+/* ===============================
+   DASHBOARD API ✅ REQUIRED
+================================ */
+export const dashboardApi = {
+  getStats: () => api.get("/dashboard/stats"),
 };
 
 
