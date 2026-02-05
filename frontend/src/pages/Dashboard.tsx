@@ -1,101 +1,176 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FolderKanban, CheckSquare, Clock, TrendingUp } from 'lucide-react';
+import { isToday } from 'date-fns';
+
 import { StatCard } from '@/components/shared/StatCard';
 import { TaskCard } from '@/components/shared/TaskCard';
 import { ActivityItem } from '@/components/shared/ActivityItem';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { workspaceApi, taskApi, auditApi } from '@/services/api';
-import { isToday } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+
+/* =========================
+   Types
+========================= */
+
+type BackendStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+type UiStatus = 'pending' | 'in_progress' | 'completed';
 
 interface Task {
-  id: string;
+  id: number;
   title: string;
   description?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: BackendStatus;
   dueDate?: string;
-  workspaceName?: string;
-  assignee?: string;
-}
-
-interface Activity {
-  id: string;
-  type: 'task_created' | 'task_updated' | 'task_deleted' | 'task_completed' | 'member_added' | 'workspace_created';
-  description: string;
-  timestamp: string;
-  user: string;
-  workspaceName?: string;
 }
 
 interface Workspace {
-  id: string;
+  id: number;
   name: string;
 }
 
+interface Activity {
+  id: number;
+  user: string;
+  description: string;
+  timestamp?: string;
+  workspaceName?: string;
+  type: any;
+}
+
+/* =========================
+   Status Mapper
+========================= */
+
+const mapStatusToUi = (status: BackendStatus): UiStatus => {
+  switch (status) {
+    case 'TODO':
+      return 'pending';
+    case 'IN_PROGRESS':
+      return 'in_progress';
+    case 'COMPLETED':
+      return 'completed';
+    default:
+      return 'pending';
+  }
+};
+
+/* =========================
+   Dashboard Component
+========================= */
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    fetchDashboard();
   }, []);
 
-  const fetchData = async () => {
+  /* =========================
+     Fetch dashboard data
+  ========================= */
+
+  const fetchDashboard = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch workspaces
-      const workspacesRes = await workspaceApi.getAll();
-      setWorkspaces(workspacesRes.data || []);
 
-      // Fetch user's tasks
-      const tasksRes = await taskApi.getMyTasks();
-      setTasks(tasksRes.data || []);
+      const wsRes = await workspaceApi.getAll();
+      const wsData = wsRes.data || [];
+      setWorkspaces(wsData);
 
-      // Fetch activities from first workspace (if exists)
-      if (workspacesRes.data?.length > 0) {
-        const allActivities: Activity[] = [];
-        for (const ws of workspacesRes.data.slice(0, 3)) {
-          try {
-            const auditRes = await auditApi.getByWorkspace(ws.id);
-            const wsActivities = (auditRes.data || []).map((a: any) => ({
-              ...a,
-              workspaceName: ws.name,
-            }));
-            allActivities.push(...wsActivities);
-          } catch (error) {
-            // Continue if audit fetch fails
-          }
-        }
-        // Sort by timestamp and take latest 10
-        allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setActivities(allActivities.slice(0, 10));
+      const taskRes = await taskApi.getMyTasks();
+      const taskData = taskRes.data || [];
+      setTasks(taskData);
+
+      const allActivities: Activity[] = [];
+
+      for (const ws of wsData.slice(0, 3)) {
+        try {
+          const auditRes = await auditApi.getByWorkspace(ws.id);
+          const logs = auditRes.data || [];
+
+          const mapped = logs.map((log: any) => ({
+            id: Number(log.id),
+            user: log.username,
+            timestamp: log.createdAt,
+            workspaceName: ws.name,
+            type: log.action,
+            description: `${log.username} ${log.action
+              .replace(/_/g, ' ')
+              .toLowerCase()}`,
+          }));
+
+          allActivities.push(...mapped);
+        } catch {}
       }
+
+      allActivities.sort(
+        (a, b) =>
+          new Date(b.timestamp || '').getTime() -
+          new Date(a.timestamp || '').getTime()
+      );
+
+      setActivities(allActivities.slice(0, 10));
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error('Failed to fetch dashboard:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleStatusChange = async (taskId: string, status: string) => {
+  /* =========================
+     Task Status Change
+  ========================= */
+
+  const handleStatusChange = (taskId: string) => {
+    updateTaskStatus(taskId);
+  };
+
+  const updateTaskStatus = async (taskId: string) => {
+    const task = tasks.find(t => t.id === Number(taskId));
+    if (!task) return;
+
+    let nextStatus: BackendStatus =
+      task.status === 'TODO'
+        ? 'IN_PROGRESS'
+        : task.status === 'IN_PROGRESS'
+        ? 'COMPLETED'
+        : 'COMPLETED';
+
     try {
-      await taskApi.updateStatus(taskId, status);
-      setTasks(tasks.map(t => 
-        t.id === taskId ? { ...t, status: status as any } : t
-      ));
+      await taskApi.updateStatus(taskId, nextStatus);
+
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === Number(taskId)
+            ? { ...t, status: nextStatus }
+            : t
+        )
+      );
     } catch (error) {
       console.error('Failed to update task status:', error);
     }
   };
 
-  const todayTasks = tasks.filter(t => 
-    t.dueDate && isToday(new Date(t.dueDate))
+  /* =========================
+     Derived Stats
+  ========================= */
+
+  const todayTasks = tasks.filter(
+    t => t.dueDate && isToday(new Date(t.dueDate))
   );
 
-  const pendingTasks = tasks.filter(t => t.status !== 'completed');
+  const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED');
+  const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
+
+  /* =========================
+     Loading
+  ========================= */
 
   if (isLoading) {
     return (
@@ -105,105 +180,65 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  /* =========================
+     Render
+  ========================= */
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="space-y-1">
+      <div>
         <h1 className="text-2xl font-bold">
-          Welcome back, <span className="gradient-text">{user?.username || 'User'}</span>
+          Welcome back, <span className="gradient-text">{user?.username}</span>
         </h1>
         <p className="text-muted-foreground">
           Here's what's happening with your workspaces today.
         </p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Workspaces"
-          value={workspaces.length}
-          icon={FolderKanban}
-          iconColor="text-primary"
-        />
-        <StatCard
-          title="Tasks Today"
-          value={todayTasks.length}
-          icon={Clock}
-          iconColor="text-warning"
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={pendingTasks.length}
-          icon={CheckSquare}
-          iconColor="text-secondary"
-        />
-        <StatCard
-          title="Completed"
-          value={tasks.filter(t => t.status === 'completed').length}
-          icon={TrendingUp}
-          iconColor="text-success"
-        />
+        <StatCard title="Total Workspaces" value={workspaces.length} icon={FolderKanban} />
+        <StatCard title="Tasks Today" value={todayTasks.length} icon={Clock} />
+        <StatCard title="Pending Tasks" value={pendingTasks.length} icon={CheckSquare} />
+        <StatCard title="Completed" value={completedTasks.length} icon={TrendingUp} />
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activities */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent Activities</h2>
-          </div>
-          
+        <div className="lg:col-span-2">
+          <h2 className="text-lg font-semibold mb-3">Recent Activities</h2>
+
           <div className="glass rounded-xl divide-y divide-border/50">
             {activities.length > 0 ? (
-              activities.map((activity) => (
-                <ActivityItem key={activity.id} {...activity} />
+              activities.map(a => (
+                <ActivityItem key={a.id} {...a} />
               ))
             ) : (
               <div className="p-8 text-center text-muted-foreground">
-                <p>No recent activities</p>
-                <p className="text-sm mt-1">Activities will appear here as you work</p>
+                No recent activities
               </div>
             )}
           </div>
         </div>
 
-        {/* Today's Tasks */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Today's Tasks</h2>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-              {todayTasks.length} tasks
-            </span>
-          </div>
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Today's Tasks</h2>
 
-          <div className="space-y-3">
-            {todayTasks.length > 0 ? (
-              todayTasks.slice(0, 5).map((task) => (
-                <TaskCard
-                  key={task.id}
-                  {...task}
-                  onStatusChange={handleStatusChange}
-                />
-              ))
-            ) : (
-              <div className="glass rounded-xl p-6 text-center">
-                <CheckSquare className="mx-auto text-muted-foreground mb-2" size={32} />
-                <p className="text-muted-foreground">No tasks due today</p>
-                <p className="text-xs text-muted-foreground mt-1">Enjoy your free time!</p>
-              </div>
-            )}
-          </div>
-
-          {/* Pending Tasks Preview */}
-          {pendingTasks.length > 0 && todayTasks.length === 0 && (
-            <>
-              <h3 className="text-sm font-medium text-muted-foreground pt-4">Upcoming Tasks</h3>
-              <div className="space-y-2">
-                {pendingTasks.slice(0, 3).map((task) => (
-                  <TaskCard key={task.id} {...task} compact />
-                ))}
-              </div>
-            </>
+          {todayTasks.length > 0 ? (
+            todayTasks.map(task => (
+              <TaskCard
+                key={task.id}
+                id={task.id.toString()}
+                title={task.title}
+                description={task.description}
+                status={mapStatusToUi(task.status)}
+                dueDate={task.dueDate}
+                onStatusChange={handleStatusChange}
+              />
+            ))
+          ) : (
+            <div className="glass rounded-xl p-6 text-center">
+              <CheckSquare className="mx-auto mb-2 text-muted-foreground" />
+              <p className="text-muted-foreground">No tasks due today</p>
+            </div>
           )}
         </div>
       </div>
