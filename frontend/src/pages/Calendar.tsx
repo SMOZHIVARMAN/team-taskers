@@ -69,7 +69,7 @@ const CalendarPage: React.FC = () => {
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
-      const response = await taskApi.getByDateRange(start, end);
+      const response = await taskApi.getCalendarTasks(start, end);
       setTasks(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Failed to fetch tasks:', error);

@@ -7,9 +7,11 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
-    // Get all logs of a user (optional, future use)
+    // activity feed for workspace
+    List<AuditLog> findByWorkspaceIdOrderByCreatedAtDesc(Long workspaceId);
+
+    // optional (future)
     List<AuditLog> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    // Get logs by entity type (TASK, WORKSPACE, MESSAGE, etc.)
     List<AuditLog> findByEntityTypeOrderByCreatedAtDesc(String entityType);
 }

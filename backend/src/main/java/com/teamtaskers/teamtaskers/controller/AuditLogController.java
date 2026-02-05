@@ -2,40 +2,45 @@ package com.teamtaskers.teamtaskers.controller;
 
 import com.teamtaskers.teamtaskers.dto.response.AuditLogResponse;
 import com.teamtaskers.teamtaskers.model.AuditLog;
-import com.teamtaskers.teamtaskers.repository.AuditLogRepository;
+import com.teamtaskers.teamtaskers.model.User;
+import com.teamtaskers.teamtaskers.service.AuditLogService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/audit-logs")
+@RequestMapping("/api/audit")
 public class AuditLogController {
 
-    private final AuditLogRepository auditLogRepository;
+    private final AuditLogService auditLogService;
 
-    public AuditLogController(AuditLogRepository auditLogRepository) {
-        this.auditLogRepository = auditLogRepository;
+    public AuditLogController(AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
     }
 
-    // ----------------------------------------------------
-    // 📊 GET RECENT AUDIT LOGS (Dashboard)
-    // ----------------------------------------------------
-    @GetMapping
-    public List<AuditLogResponse> getAuditLogs() {
+    // ====================================================
+    // ACTIVITY PAGE API
+    // ====================================================
+    @GetMapping("/workspace/{workspaceId}")
+    public List<AuditLogResponse> getAuditLogsByWorkspace(
+            @PathVariable Long workspaceId,
+            Authentication authentication
+    ) {
+        User user = (User) authentication.getPrincipal();
 
-        return auditLogRepository.findAll()
-                .stream()
-                .sorted(Comparator.comparing(AuditLog::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        List<AuditLog> logs =
+                auditLogService.getLogsByWorkspace(workspaceId, user);
+
+        return logs.stream()
                 .map(log -> new AuditLogResponse(
                         log.getId(),
+                        log.getUsername(),
                         log.getAction(),
                         log.getEntityType(),
                         log.getEntityId(),
-                        log.getUserId(),          // ✅ FIXED
                         log.getCreatedAt()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

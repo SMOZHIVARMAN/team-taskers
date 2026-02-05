@@ -153,10 +153,11 @@ export const taskApi = {
     api.delete(`/tasks/${taskId}`),
 
   // ✅ NEW: Calendar support (THIS FIXES THE ERROR)
-  getByDateRange: (start: string, end: string) =>
-    api.get("/tasks/calendar", {
-      params: { start, end },
-    }),
+ getCalendarTasks: (start: string, end: string) =>
+  api.get("/tasks/calendar", {
+    params: { start, end },
+  }),
+
 };
 
 
@@ -175,8 +176,9 @@ export const chatApi = {
    AUDIT API
 ================================ */
 export const auditApi = {
-  getByWorkspace: (workspaceId: string) =>
+  getByWorkspace: (workspaceId: number) =>
     api.get(`/audit/workspace/${workspaceId}`),
 };
+
 
 export default api;

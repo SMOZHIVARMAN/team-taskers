@@ -44,9 +44,7 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         boolean isMember = workspaceMemberRepository
-                .findByUser(user)
-                .stream()
-                .anyMatch(m -> m.getWorkspace().getId().equals(workspaceId));
+                .existsByWorkspaceIdAndUserId(workspaceId, user.getId());
 
         if (!isMember) {
             throw new AccessDeniedException("Not a member of this workspace");
@@ -64,9 +62,7 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workspace not found"));
 
         boolean isMember = workspaceMemberRepository
-                .findByUser(user)
-                .stream()
-                .anyMatch(m -> m.getWorkspace().getId().equals(workspace.getId()));
+                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
 
         if (!isMember) {
             throw new AccessDeniedException("You are not a member of this workspace");
@@ -81,7 +77,9 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
+        // ✅ FIXED AUDIT LOG
         auditLogService.log(
+                workspace,
                 user,
                 "CREATE_TASK",
                 "TASK",
@@ -104,9 +102,6 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         Workspace workspace = task.getWorkspace();
-        if (workspace == null) {
-            throw new IllegalStateException("Task has no associated workspace");
-        }
 
         boolean isMember = workspaceMemberRepository
                 .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
@@ -118,7 +113,9 @@ public class TaskService {
         task.setStatus(newStatus);
         Task updatedTask = taskRepository.save(task);
 
+        // ✅ FIXED AUDIT LOG
         auditLogService.log(
+                workspace,
                 user,
                 "UPDATE_TASK_STATUS",
                 "TASK",
@@ -140,9 +137,6 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("User to assign not found"));
 
         Workspace workspace = task.getWorkspace();
-        if (workspace == null) {
-            throw new IllegalStateException("Task has no associated workspace");
-        }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
 
@@ -153,7 +147,9 @@ public class TaskService {
         task.setAssignedTo(userToAssign);
         Task updatedTask = taskRepository.save(task);
 
+        // ✅ FIXED AUDIT LOG
         auditLogService.log(
+                workspace,
                 currentUser,
                 "ASSIGN_TASK",
                 "TASK",
@@ -179,9 +175,6 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         Workspace workspace = task.getWorkspace();
-        if (workspace == null) {
-            throw new IllegalStateException("Task has no associated workspace");
-        }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
 
@@ -191,7 +184,9 @@ public class TaskService {
 
         taskRepository.delete(task);
 
+        // ✅ FIXED AUDIT LOG
         auditLogService.log(
+                workspace,
                 currentUser,
                 "DELETE_TASK",
                 "TASK",
@@ -210,9 +205,6 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
         Workspace workspace = task.getWorkspace();
-        if (workspace == null) {
-            throw new IllegalStateException("Task has no associated workspace");
-        }
 
         boolean isMember = workspaceMemberRepository
                 .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
@@ -224,7 +216,9 @@ public class TaskService {
         task.setDueDate(dueDate);
         Task updatedTask = taskRepository.save(task);
 
+        // ✅ FIXED AUDIT LOG
         auditLogService.log(
+                workspace,
                 user,
                 "UPDATE_TASK_DUE_DATE",
                 "TASK",
@@ -278,7 +272,7 @@ public class TaskService {
     }
 
     // ====================================================
-    // ✅ 10️⃣ CALENDAR (GLOBAL – FIXES 500)
+    // ✅ 10️⃣ CALENDAR (GLOBAL)
     // ====================================================
     public List<Task> getTasksForUserBetweenDates(
             User user,

@@ -1,7 +1,6 @@
 package com.teamtaskers.teamtaskers.model;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,54 +11,52 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Who performed the action
+    // who did the action
     @Column(nullable = false)
     private Long userId;
 
     @Column(nullable = false)
     private String username;
 
-    // What action
+    // what happened
     @Column(nullable = false)
-    private String action;
+    private String action;        // TASK_CREATED, MEMBER_ADDED, etc.
 
-    // On what entity
     @Column(nullable = false)
-    private String entityType;
+    private String entityType;    // TASK, WORKSPACE, MEMBER
 
     private Long entityId;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    // ===============================
-    // Constructors
-    // ===============================
+    // workspace scope
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "workspace_id", nullable = false)
+    private Workspace workspace;
 
-    public AuditLog() {}
+    protected AuditLog() {}
 
     public AuditLog(
+            Workspace workspace,
             Long userId,
             String username,
             String action,
             String entityType,
             Long entityId
     ) {
+        this.workspace = workspace;
         this.userId = userId;
         this.username = username;
         this.action = action;
         this.entityType = entityType;
         this.entityId = entityId;
-    }
-
-    @PrePersist
-    protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
-    // ===============================
-    // Getters
-    // ===============================
+    // =====================
+    // GETTERS (IMMUTABLE)
+    // =====================
 
     public Long getId() {
         return id;
@@ -87,5 +84,9 @@ public class AuditLog {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Workspace getWorkspace() {
+        return workspace;
     }
 }
