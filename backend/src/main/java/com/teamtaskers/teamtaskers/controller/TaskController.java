@@ -55,13 +55,12 @@ public class TaskController {
             Authentication authentication
     ) {
         User user = (User) authentication.getPrincipal();
-
         Task task = taskService.createTask(request, user);
         return ResponseEntity.ok(new TaskResponse(task));
     }
 
     // ====================================================
-    // 3️⃣ UPDATE TASK STATUS ✅ (FIXED & SAFE)
+    // 3️⃣ UPDATE TASK STATUS
     // ====================================================
     @PutMapping("/{taskId}/status")
     public ResponseEntity<TaskResponse> updateTaskStatus(
@@ -81,7 +80,7 @@ public class TaskController {
     }
 
     // ====================================================
-    // 4️⃣ ASSIGN / REASSIGN TASK
+    // 4️⃣ ASSIGN TASK
     // ====================================================
     @PutMapping("/{taskId}/assign/{userId}")
     public ResponseEntity<TaskResponse> assignTask(
@@ -90,7 +89,6 @@ public class TaskController {
             Authentication authentication
     ) {
         User user = (User) authentication.getPrincipal();
-
         Task task = taskService.assignTask(taskId, userId, user);
         return ResponseEntity.ok(new TaskResponse(task));
     }
@@ -114,7 +112,7 @@ public class TaskController {
     }
 
     // ====================================================
-    // 6️⃣ DELETE TASK (OWNER ONLY)
+    // 6️⃣ DELETE TASK
     // ====================================================
     @DeleteMapping("/{taskId}")
     public ResponseEntity<String> deleteTask(
@@ -127,10 +125,8 @@ public class TaskController {
     }
 
     // ====================================================
-    // 📅 CALENDAR APIs
-    // ====================================================
-
     // 7️⃣ UPDATE TASK DUE DATE
+    // ====================================================
     @PutMapping("/{taskId}/due-date")
     public ResponseEntity<TaskResponse> updateTaskDueDate(
             @PathVariable Long taskId,
@@ -148,19 +144,25 @@ public class TaskController {
         return ResponseEntity.ok(new TaskResponse(updatedTask));
     }
 
-    // 8️⃣ GET TASKS FOR A SPECIFIC DATE
-    @GetMapping("/workspace/{workspaceId}/date")
-    public ResponseEntity<List<TaskResponse>> getTasksByDate(
-            @PathVariable Long workspaceId,
-            @RequestParam("date")
+    // ====================================================
+    // ✅ 8️⃣ CALENDAR API (GLOBAL – FIXES 500 ERROR)
+    // ====================================================
+    @GetMapping("/calendar")
+    public ResponseEntity<List<TaskResponse>> getTasksForCalendar(
+            @RequestParam("start")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date,
+            LocalDate startDate,
+
+            @RequestParam("end")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDate,
+
             Authentication authentication
     ) {
         User user = (User) authentication.getPrincipal();
 
         List<TaskResponse> tasks = taskService
-                .getTasksByWorkspaceAndDate(workspaceId, date, user)
+                .getTasksForUserBetweenDates(user, startDate, endDate)
                 .stream()
                 .map(TaskResponse::new)
                 .collect(Collectors.toList());
@@ -168,7 +170,9 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
 
-    // 9️⃣ GET TASKS BY DATE RANGE
+    // ====================================================
+    // 9️⃣ WORKSPACE DATE RANGE (UNCHANGED)
+    // ====================================================
     @GetMapping("/workspace/{workspaceId}/range")
     public ResponseEntity<List<TaskResponse>> getTasksByDateRange(
             @PathVariable Long workspaceId,
@@ -182,13 +186,13 @@ public class TaskController {
     ) {
         User user = (User) authentication.getPrincipal();
 
-        List<TaskResponse> tasks = taskService
-                .getTasksByWorkspaceAndDateRange(
-                        workspaceId,
-                        startDate,
-                        endDate,
-                        user
-                )
+        List<TaskResponse> tasks = taskService.getTasksByWorkspaceAndDueDateRange(
+                workspaceId,
+                startDate,
+                endDate,
+                user
+        )
+
                 .stream()
                 .map(TaskResponse::new)
                 .collect(Collectors.toList());

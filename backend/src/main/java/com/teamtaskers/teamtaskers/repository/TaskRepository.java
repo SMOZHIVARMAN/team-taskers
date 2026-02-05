@@ -26,7 +26,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     void deleteByWorkspace(Workspace workspace);
 
     // ===============================
-    // 📅 CALENDAR FEATURE (NEW)
+    // 📅 WORKSPACE-BASED CALENDAR
     // ===============================
 
     // 📆 Get tasks for a specific due date (day view)
@@ -51,6 +51,27 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     """)
     List<Task> findTasksByWorkspaceAndDueDateRange(
             @Param("workspace") Workspace workspace,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    // ===============================
+    // ✅ GLOBAL CALENDAR (FIXES 500)
+    // ===============================
+
+    @Query("""
+        SELECT t
+        FROM Task t
+        WHERE (
+              t.assignedTo.id = :userId
+              OR t.workspace.owner.id = :userId
+        )
+        AND t.dueDate IS NOT NULL
+        AND t.dueDate BETWEEN :startDate AND :endDate
+        ORDER BY t.dueDate ASC
+    """)
+    List<Task> findTasksForUserBetweenDates(
+            @Param("userId") Long userId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );

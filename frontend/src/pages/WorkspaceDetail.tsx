@@ -10,6 +10,7 @@ import {
   UserMinus,
   CheckCircle2,
 } from 'lucide-react';
+import { format, isValid } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +20,9 @@ import { workspaceApi, taskApi, chatApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 
 /* ================= TYPES ================= */
+
 interface WorkspaceMember {
   id: number;
   username: string;
@@ -49,9 +50,19 @@ interface Task {
 interface Message {
   id: string;
   content: string;
-  senderUsername: string;
-  timestamp: string;
+  senderName: string;
+  createdAt: string;
 }
+
+/* ================= UTILS ================= */
+
+const safeTime = (value?: string) => {
+  if (!value) return '';
+  const d = new Date(value);
+  return isValid(d) ? format(d, 'h:mm a') : '';
+};
+
+/* ================= COMPONENT ================= */
 
 const WorkspaceDetail: React.FC = () => {
   const { workspaceId } = useParams();
@@ -71,6 +82,7 @@ const WorkspaceDetail: React.FC = () => {
   const isOwner = workspace?.ownerId === user?.id;
 
   /* ============ FETCH DATA ============ */
+
   useEffect(() => {
     if (workspaceId) fetchAll();
   }, [workspaceId]);
@@ -82,6 +94,7 @@ const WorkspaceDetail: React.FC = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
+
       const [w, t, c] = await Promise.all([
         workspaceApi.getById(workspaceId!),
         taskApi.getByWorkspace(workspaceId!),
@@ -89,8 +102,8 @@ const WorkspaceDetail: React.FC = () => {
       ]);
 
       setWorkspace(w.data);
-      setTasks(t.data || []);
-      setMessages(c.data || []);
+      setTasks(Array.isArray(t.data) ? t.data : []);
+      setMessages(Array.isArray(c.data) ? c.data : []);
     } catch {
       toast({
         title: 'Error',
@@ -103,27 +116,15 @@ const WorkspaceDetail: React.FC = () => {
   };
 
   /* ============ TASK ACTIONS ============ */
-  const handleComplete = async (taskId: string) => {
-    try {
-      await taskApi.updateStatus(taskId, 'COMPLETED');
 
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === taskId ? { ...t, status: 'COMPLETED' } : t
-        )
-      );
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to complete task',
-        variant: 'destructive',
-      });
-    }
+  const handleComplete = async (taskId: string) => {
+    await taskApi.updateStatus(taskId, 'COMPLETED');
+    fetchAll();
   };
 
   const handleDeleteTask = async (taskId: string) => {
     await taskApi.delete(taskId);
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    fetchAll();
   };
 
   const handleDeleteWorkspace = async () => {
@@ -133,6 +134,7 @@ const WorkspaceDetail: React.FC = () => {
   };
 
   /* ============ MEMBERS ============ */
+
   const handleAddMember = async () => {
     if (!newMemberName.trim()) return;
     await workspaceApi.addMember(workspaceId!, {
@@ -150,14 +152,23 @@ const WorkspaceDetail: React.FC = () => {
   };
 
   /* ============ CHAT ============ */
+
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    await chatApi.sendMessage(workspaceId!, newMessage);
+    await chatApi.sendMessage(workspaceId!, newMessage.trim());
     setNewMessage('');
     fetchAll();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   /* ============ TASK SPLIT ============ */
+
   const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
 
@@ -174,8 +185,7 @@ const WorkspaceDetail: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-10rem)]">
 
-      {/* LEFT */}
-      {/* SECTION: Tasks Section (Left Main Panel) */}
+      {/* LEFT PANEL – UNCHANGED */}
       <div className="lg:w-2/3 flex flex-col">
         {/* HEADER */}
         <div className="flex justify-between items-center">
@@ -203,9 +213,10 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* All Tasks and Completed Tasks Container */}
+        {/* TASK LISTS */}
         <div className="flex-1 flex flex-col mt-4 overflow-hidden">
-          {/* All Tasks */}
+
+          {/* ALL TASKS */}
           <div className="flex-[2] overflow-y-auto pr-2 -mr-2">
             <h2 className="text-lg font-semibold mb-3">
               All Tasks ({activeTasks.length})
@@ -218,11 +229,7 @@ const WorkspaceDetail: React.FC = () => {
                   id={task.id}
                   title={task.title}
                   description={task.description}
-                  status={
-                    task.status === 'COMPLETED'
-                      ? 'completed'
-                      : 'in_progress'
-                  }
+                  status="in_progress"
                   assignee={task.assignee?.username}
                   canDelete={isOwner}
                   onDelete={handleDeleteTask}
@@ -232,7 +239,7 @@ const WorkspaceDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Completed Tasks */}
+          {/* COMPLETED TASKS */}
           {completedTasks.length > 0 && (
             <div className="flex-[1] pt-4 border-t mt-4 overflow-y-auto pr-2 -mr-2">
               <h2 className="text-lg font-semibold text-success flex gap-2 mb-3">
@@ -256,10 +263,10 @@ const WorkspaceDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* RIGHT */}
-      {/* SECTION: Right Panel (Team Members + Chat) */}
+      {/* RIGHT PANEL */}
       <div className="lg:w-1/3 flex flex-col gap-6">
-        {/* Team Members */}
+
+        {/* MEMBERS */}
         <div className="glass rounded-xl p-4 flex flex-col h-1/3">
           <h3 className="text-sm font-semibold flex gap-2 mb-3">
             <Users size={16} /> Members ({workspace.members.length})
@@ -290,24 +297,35 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Team Chat */}
+        {/* CHAT – UPDATED */}
         <div className="glass rounded-xl flex flex-col h-2/3">
-          <div className="p-3 border-b">Team Chat</div>
+          <div className="p-3 border-b font-semibold">Team Chat</div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 space-y-4">
             {messages.map(msg => {
-              const me = msg.senderUsername === user?.username;
+              const isMe = msg.senderName === user?.username;
+              const initial = msg.senderName.charAt(0).toUpperCase();
+
               return (
-                <div key={msg.id} className={cn('max-w-[75%]', me && 'ml-auto text-right')}>
-                  <div className={cn(
-                    'px-3 py-2 rounded-lg text-sm',
-                    me ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  )}>
-                    {msg.content}
+                <div
+                  key={msg.id}
+                  className={cn(
+                    'flex items-end gap-2',
+                    isMe ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  {!isMe && (
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-semibold shadow">
+                      {initial}
+                    </div>
+                  )}
+
+                  <div className="max-w-[70%] px-4 py-2 rounded-2xl text-sm bg-transparent shadow shadow-gray-400/30">
+                    <div>{msg.content}</div>
+                    <div className="text-xs text-muted-foreground mt-1 text-right">
+                      {safeTime(msg.createdAt)}
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(msg.timestamp), 'h:mm a')}
-                  </span>
                 </div>
               );
             })}
@@ -318,7 +336,8 @@ const WorkspaceDetail: React.FC = () => {
             <Input
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message and press Enter"
             />
             <Button size="icon" onClick={handleSendMessage}>
               <Send size={16} />

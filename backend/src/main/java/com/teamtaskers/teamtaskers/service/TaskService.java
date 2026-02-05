@@ -19,14 +19,14 @@ public class TaskService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final UserRepository userRepository;
-    private final AuditLogService auditLogService; // 🔹 NEW
+    private final AuditLogService auditLogService;
 
     public TaskService(
             TaskRepository taskRepository,
             WorkspaceRepository workspaceRepository,
             WorkspaceMemberRepository workspaceMemberRepository,
             UserRepository userRepository,
-            AuditLogService auditLogService // 🔹 NEW
+            AuditLogService auditLogService
     ) {
         this.taskRepository = taskRepository;
         this.workspaceRepository = workspaceRepository;
@@ -36,7 +36,7 @@ public class TaskService {
     }
 
     // ----------------------------------------------------
-    // 1️⃣ GET TASKS BY WORKSPACE (NO LOG)
+    // 1️⃣ GET TASKS BY WORKSPACE
     // ----------------------------------------------------
     public List<Task> getTasksByWorkspace(Long workspaceId, User user) {
 
@@ -81,7 +81,6 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        // 🔍 AUDIT LOG
         auditLogService.log(
                 user,
                 "CREATE_TASK",
@@ -106,14 +105,11 @@ public class TaskService {
 
         Workspace workspace = task.getWorkspace();
         if (workspace == null) {
-            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+            throw new IllegalStateException("Task has no associated workspace");
         }
 
         boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(
-                        workspace.getId(),
-                        user.getId()
-                );
+                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
 
         if (!isMember) {
             throw new AccessDeniedException("Not a member of this workspace");
@@ -132,9 +128,8 @@ public class TaskService {
         return updatedTask;
     }
 
-
     // ----------------------------------------------------
-    // 4️⃣ ASSIGN / REASSIGN TASK
+    // 4️⃣ ASSIGN TASK
     // ----------------------------------------------------
     public Task assignTask(Long taskId, Long userId, User currentUser) {
 
@@ -146,7 +141,7 @@ public class TaskService {
 
         Workspace workspace = task.getWorkspace();
         if (workspace == null) {
-            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+            throw new IllegalStateException("Task has no associated workspace");
         }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
@@ -158,7 +153,6 @@ public class TaskService {
         task.setAssignedTo(userToAssign);
         Task updatedTask = taskRepository.save(task);
 
-        // 🔍 AUDIT LOG
         auditLogService.log(
                 currentUser,
                 "ASSIGN_TASK",
@@ -170,7 +164,7 @@ public class TaskService {
     }
 
     // ----------------------------------------------------
-    // 5️⃣ GET MY TASKS (NO LOG)
+    // 5️⃣ GET MY TASKS
     // ----------------------------------------------------
     public List<Task> getMyTasks(User user) {
         return taskRepository.findByAssignedTo(user);
@@ -186,7 +180,7 @@ public class TaskService {
 
         Workspace workspace = task.getWorkspace();
         if (workspace == null) {
-            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+            throw new IllegalStateException("Task has no associated workspace");
         }
 
         boolean isOwner = workspace.getOwner().getId().equals(currentUser.getId());
@@ -197,7 +191,6 @@ public class TaskService {
 
         taskRepository.delete(task);
 
-        // 🔍 AUDIT LOG
         auditLogService.log(
                 currentUser,
                 "DELETE_TASK",
@@ -218,14 +211,11 @@ public class TaskService {
 
         Workspace workspace = task.getWorkspace();
         if (workspace == null) {
-            throw new IllegalStateException("Task with ID " + taskId + " has no associated workspace.");
+            throw new IllegalStateException("Task has no associated workspace");
         }
-        
+
         boolean isMember = workspaceMemberRepository
-                .existsByWorkspaceIdAndUserId(
-                        task.getWorkspace().getId(),
-                        user.getId()
-                );
+                .existsByWorkspaceIdAndUserId(workspace.getId(), user.getId());
 
         if (!isMember) {
             throw new AccessDeniedException("Not a member of this workspace");
@@ -234,7 +224,6 @@ public class TaskService {
         task.setDueDate(dueDate);
         Task updatedTask = taskRepository.save(task);
 
-        // 🔍 AUDIT LOG
         auditLogService.log(
                 user,
                 "UPDATE_TASK_DUE_DATE",
@@ -245,7 +234,7 @@ public class TaskService {
         return updatedTask;
     }
 
-    // 8️⃣ GET TASKS BY DATE (NO LOG)
+    // 8️⃣ GET TASKS BY WORKSPACE + DATE
     public List<Task> getTasksByWorkspaceAndDate(
             Long workspaceId,
             LocalDate date,
@@ -264,8 +253,8 @@ public class TaskService {
         return taskRepository.findTasksByWorkspaceAndDueDate(workspace, date);
     }
 
-    // 9️⃣ GET TASKS BY DATE RANGE (NO LOG)
-    public List<Task> getTasksByWorkspaceAndDateRange(
+    // 9️⃣ GET TASKS BY WORKSPACE + DATE RANGE
+    public List<Task> getTasksByWorkspaceAndDueDateRange(
             Long workspaceId,
             LocalDate startDate,
             LocalDate endDate,
@@ -283,6 +272,21 @@ public class TaskService {
 
         return taskRepository.findTasksByWorkspaceAndDueDateRange(
                 workspace,
+                startDate,
+                endDate
+        );
+    }
+
+    // ====================================================
+    // ✅ 10️⃣ CALENDAR (GLOBAL – FIXES 500)
+    // ====================================================
+    public List<Task> getTasksForUserBetweenDates(
+            User user,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        return taskRepository.findTasksForUserBetweenDates(
+                user.getId(),
                 startDate,
                 endDate
         );
