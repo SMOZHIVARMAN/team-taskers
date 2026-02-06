@@ -1,34 +1,45 @@
 package com.teamtaskers.teamtaskers.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Current password is required")
+    @NotBlank
     private String currentPassword;
 
-    @NotBlank(message = "New password is required")
-    @Size(min = 6, message = "New password must be at least 6 characters")
+    @NotBlank
     private String newPassword;
 
-    // ===============================
-    // Getters & Setters
-    // ===============================
+    @NotBlank
+    private String confirmPassword;
 
+    // ===============================
+    // GETTERS
+    // ===============================
     public String getCurrentPassword() {
         return currentPassword;
-    }
-
-    public void setCurrentPassword(String currentPassword) {
-        this.currentPassword = currentPassword;
     }
 
     public String getNewPassword() {
         return newPassword;
     }
 
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    // ===============================
+    // SETTERS
+    // ===============================
+    public void setCurrentPassword(String currentPassword) {
+        this.currentPassword = currentPassword;
+    }
+
     public void setNewPassword(String newPassword) {
         this.newPassword = newPassword;
+    }
+
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
     }
 }

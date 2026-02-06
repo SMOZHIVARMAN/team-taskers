@@ -1,8 +1,10 @@
 package com.teamtaskers.teamtaskers.service;
 
 import com.teamtaskers.teamtaskers.dto.UpdateProfileRequest;
+import com.teamtaskers.teamtaskers.dto.ChangePasswordRequest;
 import com.teamtaskers.teamtaskers.model.User;
 import com.teamtaskers.teamtaskers.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ===============================
-    // UPDATE USER PROFILE
+    // UPDATE USER PROFILE (UNCHANGED)
     // ===============================
     public User updateProfile(User currentUser, UpdateProfileRequest request) {
 
@@ -44,5 +49,32 @@ public class UserService {
         currentUser.setExperience(request.getExperience());
 
         return userRepository.save(currentUser);
+    }
+
+    // ===============================
+    // CHANGE PASSWORD (NEW FEATURE)
+    // ===============================
+    public void changePassword(User currentUser, ChangePasswordRequest request) {
+
+        // ❌ current password mismatch
+        if (!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                currentUser.getPassword()
+        )) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // ❌ new password mismatch
+        if (!request.getNewPassword()
+                .equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Passwords do not match");
+        }
+
+        // ✅ encode and save new password
+        currentUser.setPassword(
+                passwordEncoder.encode(request.getNewPassword())
+        );
+
+        userRepository.save(currentUser);
     }
 }

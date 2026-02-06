@@ -69,9 +69,10 @@ export const authApi = {
   }) => api.post<string>("/auth/login", data),
 
   changePassword: (data: {
-    oldPassword: string;
+    currentPassword: string;
     newPassword: string;
-  }) => api.put("/auth/change-password", data),
+    confirmPassword: string;
+  }) => api.put("/users/change-password", data),
 };
 
 /* ===============================
@@ -90,9 +91,11 @@ export const userApi = {
   }) => api.put("/users/profile", data),
 
   changePassword: (data: {
-    oldPassword: string;
-    newPassword: string;
-  }) => api.put("/users/change-password", data),
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => api.put("/users/change-password", data),
+
 };
 
 /* ===============================

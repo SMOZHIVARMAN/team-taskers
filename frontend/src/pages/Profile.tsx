@@ -20,13 +20,14 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-  oldPassword: z.string().min(1, 'Current password is required'),
+  currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
+  confirmPassword: z.string().min(1, 'Confirm password is required'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
@@ -59,14 +60,16 @@ const Profile: React.FC = () => {
     },
   });
 
-  const {
-    register: registerPassword,
-    handleSubmit: handlePasswordSubmit,
-    reset: resetPassword,
-    formState: { errors: passwordErrors },
-  } = useForm<PasswordFormData>({
-    resolver: zodResolver(passwordSchema),
-  });
+const {
+  register: registerPassword,
+  handleSubmit: handlePasswordSubmit,
+  reset: resetPassword,
+  formState: { errors: passwordErrors },
+} = useForm<PasswordFormData>({
+  resolver: zodResolver(passwordSchema),
+  shouldUnregister: false, // ✅ ADD THIS LINE
+});
+
 
   useEffect(() => {
     // Load profile image from localStorage
@@ -134,9 +137,11 @@ const Profile: React.FC = () => {
     setIsLoadingPassword(true);
     try {
       await userApi.changePassword({
-        oldPassword: data.oldPassword,
-        newPassword: data.newPassword,
-      });
+  currentPassword: data.currentPassword, // ✅ MATCHES FORM + API
+  newPassword: data.newPassword,
+  confirmPassword: data.confirmPassword,
+});
+
       resetPassword();
       setShowPasswordForm(false);
       toast({
@@ -351,10 +356,14 @@ const Profile: React.FC = () => {
           <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="space-y-4 max-w-md">
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Password</label>
-              <Input {...registerPassword('oldPassword')} type="password" />
-              {passwordErrors.oldPassword && (
-                <p className="text-xs text-destructive">{passwordErrors.oldPassword.message}</p>
-              )}
+              <Input {...registerPassword('currentPassword')} type="password" />
+
+{passwordErrors.currentPassword && (
+  <p className="text-xs text-destructive">
+    {passwordErrors.currentPassword.message}
+  </p>
+)}
+
             </div>
 
             <div className="space-y-2">

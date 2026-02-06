@@ -1,6 +1,7 @@
 package com.teamtaskers.teamtaskers.controller;
 
 import com.teamtaskers.teamtaskers.dto.UpdateProfileRequest;
+import com.teamtaskers.teamtaskers.dto.ChangePasswordRequest;
 import com.teamtaskers.teamtaskers.dto.response.UserResponse;
 import com.teamtaskers.teamtaskers.model.User;
 import com.teamtaskers.teamtaskers.service.UserService;
@@ -38,7 +39,7 @@ public class UserController {
     }
 
     // =========================
-    // UPDATE PROFILE ✅ (FIX)
+    // UPDATE PROFILE
     // =========================
     @PutMapping("/profile")
     public UserResponse updateProfile(
@@ -59,5 +60,17 @@ public class UserController {
                 updatedUser.getJobTitle(),
                 updatedUser.getExperience()
         );
+    }
+
+    // =========================
+    // CHANGE PASSWORD
+    // =========================
+    @PutMapping("/change-password")
+    public void changePassword(
+            @RequestBody @Valid ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+        userService.changePassword(currentUser, request);
     }
 }
