@@ -118,20 +118,7 @@ Backend (Spring Boot)
 
 ---
 
-## 📸 Screentshots
 
-![Signup](Signup.png)
-![Signin](signin.png)
-![Dashboard](dashboard.png)
-![Calendar](calendar.png)
-![Workspace_member](workspace_member.png)
-![Workspace_member_project](workspace_member_module.png)
-![Workspace_owner](workspace_owner.png)
-![Workspace_owner_project](workspace_owner_module.png)
-![Activity](activity.png)
-![Profile](profile.png)
-
----
 ## 🧪 Key Learnings
 
 - Implemented real-world JWT authentication flow
