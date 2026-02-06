@@ -39,10 +39,12 @@ interface Task {
 
 /* ================= UTILS ================= */
 
+// ✅ FIXED: LocalDate-safe parser
 const safeDate = (value?: string) => {
   if (!value) return null;
-  const d = new Date(value);
-  return isValid(d) ? d : null;
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(y, m - 1, d); // LOCAL DATE
+  return isValid(date) ? date : null;
 };
 
 const safeTime = (value?: string) => {
@@ -94,7 +96,6 @@ const CalendarPage: React.FC = () => {
   const selectedDateTasks = selectedDate ? getTasksForDate(selectedDate) : [];
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   const firstDayOfMonth = startOfMonth(currentDate);
   const startDay = firstDayOfMonth.getDay();
 
@@ -228,39 +229,7 @@ const CalendarPage: React.FC = () => {
                 {selectedDateTasks.length > 0 ? (
                   selectedDateTasks.map(task => (
                     <div key={task.id} className="p-4 rounded-lg bg-muted/50 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="font-medium">{task.title}</h4>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
-                          {task.status.replace('_', ' ')}
-                        </span>
-                      </div>
-
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {task.description}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        {task.workspaceName && (
-                          <span className="inline-flex items-center gap-1">
-                            <FolderKanban size={12} />
-                            {task.workspaceName}
-                          </span>
-                        )}
-                        {task.assignedBy && (
-                          <span className="inline-flex items-center gap-1">
-                            <User size={12} />
-                            Assigned by {task.assignedBy}
-                          </span>
-                        )}
-                        {task.dueDate && (
-                          <span className="inline-flex items-center gap-1">
-                            <Clock size={12} />
-                            {safeTime(task.dueDate)}
-                          </span>
-                        )}
-                      </div>
+                      <h4 className="font-medium">{task.title}</h4>
                     </div>
                   ))
                 ) : (

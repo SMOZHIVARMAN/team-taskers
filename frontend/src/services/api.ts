@@ -117,34 +117,29 @@ export const workspaceApi = {
 
   delete: (workspaceId: string) => api.delete(`/workspaces/${workspaceId}`),
 };
-/* ===============================
-   TASK API ✅ FIXED
-================================ */
 export const taskApi = {
-  getMyTasks: () => api.get("/tasks/my"),
+  getMyTasks: () => api.get('/tasks/my'),
 
   getByWorkspace: (workspaceId: string) =>
     api.get(`/tasks/workspace/${workspaceId}`),
+
+  getCalendarTasks: (start: string, end: string) =>
+    api.get('/tasks/calendar', { params: { start, end } }),
 
   create: (data: {
     title: string;
     description?: string;
     workspaceId: string;
     dueDate?: string;
-    assignedUserId?: number; // ✅ ADD THIS
+    assignedUserId?: number;
   }) =>
-    api.post("/tasks", {
-      title: data.title,
-      description: data.description,
+    api.post('/tasks', {
+      ...data,
       workspaceId: Number(data.workspaceId),
-      dueDate: data.dueDate,
-      assignedUserId: data.assignedUserId ?? null, // ✅ FORCE SEND
+      assignedUserId: data.assignedUserId ?? null,
     }),
 
-  updateStatus: (
-    taskId: string,
-    status: "TODO" | "IN_PROGRESS" | "COMPLETED"
-  ) =>
+  updateStatus: (taskId: string, status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED') =>
     api.put(`/tasks/${taskId}/status`, { status }),
 
   delete: (taskId: string) =>

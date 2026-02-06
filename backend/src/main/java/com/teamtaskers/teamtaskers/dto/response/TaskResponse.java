@@ -25,7 +25,6 @@ public class TaskResponse {
         this.workspaceId = task.getWorkspace().getId();
         this.assignedToUserId =
                 task.getAssignedTo() != null ? task.getAssignedTo().getId() : null;
-
         this.dueDate = task.getDueDate(); // ✅ ADD THIS
     }
 }
