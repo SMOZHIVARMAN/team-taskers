@@ -7,8 +7,10 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // 🔑 REQUIRED FOR AUTH, JWT, WORKSPACE, COMMENTS
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
     boolean existsByEmail(String email);
 }
