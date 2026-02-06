@@ -24,7 +24,8 @@ import { cn } from '@/lib/utils';
 /* ================= TYPES ================= */
 
 interface WorkspaceMember {
-  id: number;
+  id: number;        // workspace_member id
+  userId: number;    // ✅ REAL user.id
   username: string;
   role: string;
 }
@@ -185,9 +186,8 @@ const WorkspaceDetail: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-10rem)]">
 
-      {/* LEFT PANEL – UNCHANGED */}
+      {/* LEFT PANEL */}
       <div className="lg:w-2/3 flex flex-col">
-        {/* HEADER */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate('/workspaces')}>
@@ -215,8 +215,6 @@ const WorkspaceDetail: React.FC = () => {
 
         {/* TASK LISTS */}
         <div className="flex-1 flex flex-col mt-4 overflow-hidden">
-
-          {/* ALL TASKS */}
           <div className="flex-[2] overflow-y-auto pr-2 -mr-2">
             <h2 className="text-lg font-semibold mb-3">
               All Tasks ({activeTasks.length})
@@ -239,7 +237,6 @@ const WorkspaceDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* COMPLETED TASKS */}
           {completedTasks.length > 0 && (
             <div className="flex-[1] pt-4 border-t mt-4 overflow-y-auto pr-2 -mr-2">
               <h2 className="text-lg font-semibold text-success flex gap-2 mb-3">
@@ -276,8 +273,12 @@ const WorkspaceDetail: React.FC = () => {
             {workspace.members.map(m => (
               <div key={m.id} className="flex justify-between items-center p-2 rounded hover:bg-muted/30">
                 <span>{m.username}</span>
-                {isOwner && m.id !== user?.id && (
-                  <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(m.username)}>
+                {isOwner && m.userId !== user?.id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveMember(m.username)}
+                  >
                     <UserMinus size={14} />
                   </Button>
                 )}
@@ -297,7 +298,7 @@ const WorkspaceDetail: React.FC = () => {
           )}
         </div>
 
-        {/* CHAT – UPDATED */}
+        {/* CHAT (RESTORED) */}
         <div className="glass rounded-xl flex flex-col h-2/3">
           <div className="p-3 border-b font-semibold">Team Chat</div>
 
