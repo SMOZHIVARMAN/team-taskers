@@ -121,13 +121,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   /* ===============================
      Logout
   ================================ */
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("profileImage");
-    setToken(null);
-    setUser(null);
-  };
+const logout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("profileImage");
+
+  setToken(null);
+  setUser(null);
+
+  // ✅ SIMPLE & SAFE REDIRECT
+  window.location.href = "/login";
+};
 
   /* ===============================
      Update User
