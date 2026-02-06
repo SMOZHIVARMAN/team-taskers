@@ -67,7 +67,7 @@ const Login: React.FC = () => {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="text-primary-foreground" size={28} />
               </div>
-              <h1 className="text-3xl font-bold gradient-text">Workify</h1>
+              <h1 className="text-3xl font-bold gradient-text">TeamTaskers</h1>
             </div>
             
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
@@ -107,7 +107,7 @@ const Login: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="text-primary-foreground" size={22} />
               </div>
-              <span className="text-2xl font-bold gradient-text">Workify</span>
+              <span className="text-2xl font-bold gradient-text">TeamTaskers</span>
             </div>
           </div>
 

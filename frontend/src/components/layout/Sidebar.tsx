@@ -55,9 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           {isOpen && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">W</span>
+                <span className="text-primary-foreground font-bold text-sm">TT</span>
               </div>
-              <span className="font-semibold text-lg gradient-text">Workify</span>
+              <span className="font-semibold text-lg gradient-text">TeamTaskers</span>
             </div>
           )}
           <Button
