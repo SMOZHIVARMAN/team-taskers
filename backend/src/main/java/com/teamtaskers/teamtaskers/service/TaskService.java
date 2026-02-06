@@ -51,7 +51,7 @@ public class TaskService {
     }
 
     // ====================================================
-    // 2️⃣ CREATE TASK (WITH ASSIGNMENT)
+    // 2️⃣ CREATE TASK (🔥 FIXED ASSIGNMENT)
     // ====================================================
     public Task createTask(CreateTaskRequest request, User user) {
 
@@ -69,17 +69,23 @@ public class TaskService {
         task.setStatus(TaskStatus.TODO);
         task.setDueDate(request.getDueDate());
 
-        // ✅ ASSIGN USER DURING CREATION
+        // 🔥 FIX: GUARANTEE ASSIGNMENT
+        User assignee;
+
         if (request.getAssignedUserId() != null) {
-            User assignee = userRepository.findById(request.getAssignedUserId())
+            assignee = userRepository.findById(request.getAssignedUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Assigned user not found"));
 
-            if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspace.getId(), assignee.getId())) {
+            if (!workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+                    workspace.getId(), assignee.getId())) {
                 throw new AccessDeniedException("Assigned user is not a workspace member");
             }
-
-            task.setAssignedTo(assignee);
+        } else {
+            // default: assign to creator
+            assignee = user;
         }
+
+        task.setAssignedTo(assignee);
 
         Task savedTask = taskRepository.save(task);
 
@@ -181,10 +187,8 @@ public class TaskService {
     }
 
     // ====================================================
-    // 📅 CALENDAR & DATE APIs (REQUIRED BY CONTROLLER)
+    // 📅 CALENDAR & DATE APIs
     // ====================================================
-
-    // 7️⃣ UPDATE TASK DUE DATE
     public Task updateTaskDueDate(Long taskId, LocalDate dueDate, User user) {
 
         Task task = taskRepository.findById(taskId)
@@ -199,7 +203,6 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    // 8️⃣ WORKSPACE DATE RANGE
     public List<Task> getTasksByWorkspaceAndDueDateRange(
             Long workspaceId,
             LocalDate startDate,
@@ -221,7 +224,6 @@ public class TaskService {
         );
     }
 
-    // 9️⃣ GLOBAL CALENDAR (USER)
     public List<Task> getTasksForUserBetweenDates(
             User user,
             LocalDate startDate,
