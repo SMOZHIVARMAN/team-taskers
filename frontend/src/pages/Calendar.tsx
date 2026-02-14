@@ -133,73 +133,74 @@ const CalendarPage: React.FC = () => {
       </div>
 
       {/* CALENDAR GRID */}
-      <div className="glass rounded-xl overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-border">
-          {weekDays.map(day => (
-            <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7">
-          {Array.from({ length: startDay }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[120px] p-2 bg-muted/30" />
-          ))}
-
-          {days.map(day => {
-            const dayTasks = getTasksForDate(day);
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
-
-            return (
-              <div
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  'min-h-[120px] p-2 border-t border-l border-border/50 cursor-pointer transition-all',
-                  !isSameMonth(day, currentDate) && 'opacity-50',
-                  isToday(day) && 'bg-primary/5',
-                  isSelected && 'bg-primary/10 ring-1 ring-primary/50',
-                  'hover:bg-muted/50'
-                )}
-              >
-                <div
-                  className={cn(
-                    'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium mb-2',
-                    isToday(day) && 'bg-primary text-primary-foreground'
-                  )}
-                >
-                  {format(day, 'd')}
-                </div>
-
-                <div className="space-y-1">
-                  {dayTasks.slice(0, 3).map(task => (
-                    <div
-                      key={task.id}
-                      className="text-xs px-1.5 py-0.5 rounded truncate flex items-center gap-1 bg-muted"
-                    >
-                      <div
-                        className={cn(
-                          'w-1.5 h-1.5 rounded-full shrink-0',
-                          statusColors[task.status]
-                        )}
-                      />
-                      <span className="truncate">{task.title}</span>
+            <div className="overflow-x-auto">
+              <div className="glass rounded-xl overflow-hidden">
+                <div className="grid grid-cols-7 border-b border-border min-w-[700px]">
+                  {weekDays.map(day => (
+                    <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground">
+                      {day}
                     </div>
                   ))}
-
-                  {dayTasks.length > 3 && (
-                    <div className="text-xs text-muted-foreground px-1.5">
-                      +{dayTasks.length - 3} more
-                    </div>
-                  )}
+                </div>
+      
+                <div className="grid grid-cols-7 min-w-[700px]">
+                  {Array.from({ length: startDay }).map((_, i) => (
+                    <div key={`empty-${i}`} className="min-h-[120px] p-2 bg-muted/30" />
+                  ))}
+      
+                  {days.map(day => {
+                    const dayTasks = getTasksForDate(day);
+                    const isSelected = selectedDate && isSameDay(day, selectedDate);
+      
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        onClick={() => setSelectedDate(day)}
+                        className={cn(
+                          'min-h-[120px] p-2 border-t border-l border-border/50 cursor-pointer transition-all',
+                          !isSameMonth(day, currentDate) && 'opacity-50',
+                          isToday(day) && 'bg-primary/5',
+                          isSelected && 'bg-primary/10 ring-1 ring-primary/50',
+                          'hover:bg-muted/50'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium mb-2',
+                            isToday(day) && 'bg-primary text-primary-foreground'
+                          )}
+                        >
+                          {format(day, 'd')}
+                        </div>
+      
+                        <div className="space-y-1">
+                          {dayTasks.slice(0, 3).map(task => (
+                            <div
+                              key={task.id}
+                              className="text-xs px-1.5 py-0.5 rounded truncate flex items-center gap-1 bg-muted"
+                            >
+                              <div
+                                className={cn(
+                                  'w-1.5 h-1.5 rounded-full shrink-0',
+                                  statusColors[task.status]
+                                )}
+                              />
+                              <span className="truncate">{task.title}</span>
+                            </div>
+                          ))}
+      
+                          {dayTasks.length > 3 && (
+                            <div className="text-xs text-muted-foreground px-1.5">
+                              +{dayTasks.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
+            </div>
       {/* MODAL */}
       {selectedDate && (
         <>

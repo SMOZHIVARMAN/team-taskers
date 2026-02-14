@@ -29,7 +29,7 @@ export const TaskCard = ({
   onStatusChange,
 }: TaskCardProps) => {
   return (
-    <div className="glass rounded-xl px-4 py-4 flex items-center justify-between gap-4">
+    <div className="glass rounded-xl px-4 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 
       {/* LEFT */}
       <div className="flex-1 min-w-0 space-y-2">

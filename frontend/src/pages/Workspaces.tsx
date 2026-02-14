@@ -96,7 +96,7 @@ const Workspaces: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setActiveTab("member")}
           className={cn(
@@ -165,7 +165,7 @@ const Workspaces: React.FC = () => {
                 )}
               </div>
 
-              <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-lg group-hover:text-primary transition-colors break-words">
                 {ws.name}
               </h3>
 
