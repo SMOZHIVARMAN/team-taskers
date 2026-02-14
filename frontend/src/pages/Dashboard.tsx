@@ -6,7 +6,12 @@ import { StatCard } from '@/components/shared/StatCard';
 import { TaskCard } from '@/components/shared/TaskCard';
 import { ActivityItem } from '@/components/shared/ActivityItem';
 
-import { workspaceApi, taskApi, auditApi } from '@/services/api';
+import {
+  workspaceApi,
+  taskApi,
+  auditApi,
+  dashboardApi,
+} from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 /* =========================
@@ -38,6 +43,12 @@ interface Activity {
   type: any;
 }
 
+interface DashboardStats {
+  todayTasks: number;
+  pendingTasks: number;
+  completedTasks: number;
+}
+
 /* =========================
    Status Mapper
 ========================= */
@@ -65,6 +76,11 @@ const Dashboard: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    todayTasks: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -79,14 +95,21 @@ const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
 
+      // 1️⃣ Workspaces
       const wsRes = await workspaceApi.getAll();
       const wsData = wsRes.data || [];
       setWorkspaces(wsData);
 
+      // 2️⃣ My tasks
       const taskRes = await taskApi.getMyTasks();
       const taskData = taskRes.data || [];
       setTasks(taskData);
 
+      // 3️⃣ Dashboard stats (IMPORTANT)
+      const statsRes = await dashboardApi.getStats();
+      setStats(statsRes.data);
+
+      // 4️⃣ Recent activities
       const allActivities: Activity[] = [];
 
       for (const ws of wsData.slice(0, 3)) {
@@ -135,7 +158,7 @@ const Dashboard: React.FC = () => {
     const task = tasks.find(t => t.id === Number(taskId));
     if (!task) return;
 
-    let nextStatus: BackendStatus =
+    const nextStatus: BackendStatus =
       task.status === 'TODO'
         ? 'IN_PROGRESS'
         : task.status === 'IN_PROGRESS'
@@ -145,6 +168,7 @@ const Dashboard: React.FC = () => {
     try {
       await taskApi.updateStatus(taskId, nextStatus);
 
+      // Update local task list
       setTasks(prev =>
         prev.map(t =>
           t.id === Number(taskId)
@@ -152,21 +176,22 @@ const Dashboard: React.FC = () => {
             : t
         )
       );
+
+      // 🔁 Re-fetch stats to stay in sync
+      const statsRes = await dashboardApi.getStats();
+      setStats(statsRes.data);
     } catch (error) {
       console.error('Failed to update task status:', error);
     }
   };
 
   /* =========================
-     Derived Stats
+     Derived (UI-only)
   ========================= */
 
-  const todayTasks = tasks.filter(
+  const todayTaskCards = tasks.filter(
     t => t.dueDate && isToday(new Date(t.dueDate))
   );
-
-  const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED');
-  const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
 
   /* =========================
      Loading
@@ -195,14 +220,32 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
+      {/* 🔢 STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Workspaces" value={workspaces.length} icon={FolderKanban} />
-        <StatCard title="Tasks Today" value={todayTasks.length} icon={Clock} />
-        <StatCard title="Pending Tasks" value={pendingTasks.length} icon={CheckSquare} />
-        <StatCard title="Completed" value={completedTasks.length} icon={TrendingUp} />
+        <StatCard
+          title="Total Workspaces"
+          value={workspaces.length}
+          icon={FolderKanban}
+        />
+        <StatCard
+          title="Tasks Today"
+          value={stats.todayTasks}
+          icon={Clock}
+        />
+        <StatCard
+          title="Pending Tasks"
+          value={stats.pendingTasks}
+          icon={CheckSquare}
+        />
+        <StatCard
+          title="Completed"
+          value={stats.completedTasks}
+          icon={TrendingUp}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Activities */}
         <div className="lg:col-span-2">
           <h2 className="text-lg font-semibold mb-3">Recent Activities</h2>
 
@@ -219,11 +262,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Today's Tasks */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Today's Tasks</h2>
 
-          {todayTasks.length > 0 ? (
-            todayTasks.map(task => (
+          {todayTaskCards.length > 0 ? (
+            todayTaskCards.map(task => (
               <TaskCard
                 key={task.id}
                 id={task.id.toString()}
