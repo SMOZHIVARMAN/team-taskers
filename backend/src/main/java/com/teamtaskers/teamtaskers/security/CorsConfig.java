@@ -16,17 +16,17 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Required when using JWT + Authorization header
+        // Allow credentials (JWT Authorization header)
         config.setAllowCredentials(true);
 
-        // ✅ Allowed frontend origins (LOCAL + PRODUCTION)
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:8081",
-                "https://team-taskers-i6q9.onrender.com"
+        // ✅ Allow ALL Netlify subdomains + Render + Localhost
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://*.netlify.app",
+                "https://*.onrender.com"
         ));
 
-        // ✅ Allowed HTTP methods
+        // Allowed HTTP methods
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",
@@ -35,10 +35,10 @@ public class CorsConfig {
                 "OPTIONS"
         ));
 
-        // ✅ Allow all headers (Authorization included)
+        // Allow all headers
         config.setAllowedHeaders(List.of("*"));
 
-        // ✅ Optional: expose headers if needed
+        // Expose headers if needed
         config.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
