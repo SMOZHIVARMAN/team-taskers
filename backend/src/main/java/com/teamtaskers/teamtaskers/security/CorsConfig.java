@@ -16,22 +16,30 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Must be true because frontend uses withCredentials
+        // ✅ Required when using JWT + Authorization header
         config.setAllowCredentials(true);
 
-        // ✅ Frontend origins
+        // ✅ Allowed frontend origins (LOCAL + PRODUCTION)
         config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
                 "http://localhost:8081",
-                "http://localhost:5173"
+                "https://team-taskers-i6q9.onrender.com"
         ));
 
         // ✅ Allowed HTTP methods
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
         ));
 
-        // ✅ Allow all headers
+        // ✅ Allow all headers (Authorization included)
         config.setAllowedHeaders(List.of("*"));
+
+        // ✅ Optional: expose headers if needed
+        config.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
