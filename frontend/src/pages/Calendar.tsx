@@ -16,8 +16,6 @@ import {
   ChevronRight,
   X,
   Clock,
-  User,
-  FolderKanban,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -39,17 +37,12 @@ interface Task {
 
 /* ================= UTILS ================= */
 
-// ✅ FIXED: LocalDate-safe parser
+// ✅ LocalDate-safe parser
 const safeDate = (value?: string) => {
   if (!value) return null;
   const [y, m, d] = value.split('-').map(Number);
-  const date = new Date(y, m - 1, d); // LOCAL DATE
+  const date = new Date(y, m - 1, d);
   return isValid(date) ? date : null;
-};
-
-const safeTime = (value?: string) => {
-  const d = safeDate(value);
-  return d ? format(d, 'h:mm a') : '';
 };
 
 /* ================= COMPONENT ================= */
@@ -106,7 +99,7 @@ const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in relative">
+    <div className="space-y-6 animate-fade-in relative w-full">
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
@@ -118,7 +111,11 @@ const CalendarPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+          >
             <ChevronLeft size={20} />
           </Button>
 
@@ -126,81 +123,102 @@ const CalendarPage: React.FC = () => {
             {format(currentDate, 'MMMM yyyy')}
           </span>
 
-          <Button variant="ghost" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+          >
             <ChevronRight size={20} />
           </Button>
         </div>
       </div>
 
       {/* CALENDAR GRID */}
-            <div className="overflow-x-auto">
-              <div className="glass rounded-xl overflow-hidden">
-                <div className="grid grid-cols-7 border-b border-border min-w-[700px]">
-                  {weekDays.map(day => (
-                    <div key={day} className="p-3 text-center text-sm font-medium text-muted-foreground">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-      
-                <div className="grid grid-cols-7 min-w-[700px]">
-                  {Array.from({ length: startDay }).map((_, i) => (
-                    <div key={`empty-${i}`} className="min-h-[120px] p-2 bg-muted/30" />
-                  ))}
-      
-                  {days.map(day => {
-                    const dayTasks = getTasksForDate(day);
-                    const isSelected = selectedDate && isSameDay(day, selectedDate);
-      
-                    return (
+      <div className="w-full overflow-x-auto">
+        <div className="glass rounded-xl">
+
+          {/* WEEK HEADER */}
+          <div className="grid grid-cols-7 border-b border-border min-w-[700px]">
+            {weekDays.map(day => (
+              <div
+                key={day}
+                className="p-3 text-center text-sm font-medium text-muted-foreground"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* DAYS GRID */}
+          <div className="grid grid-cols-7 min-w-[700px]">
+
+            {/* Empty slots before month start */}
+            {Array.from({ length: startDay }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                className="min-h-[120px] p-2 bg-muted/30"
+              />
+            ))}
+
+            {days.map(day => {
+              const dayTasks = getTasksForDate(day);
+              const isSelected =
+                selectedDate && isSameDay(day, selectedDate);
+
+              return (
+                <div
+                  key={day.toISOString()}
+                  onClick={() => setSelectedDate(day)}
+                  className={cn(
+                    'min-h-[120px] p-2 border-t border-l border-border/50 cursor-pointer transition-all',
+                    !isSameMonth(day, currentDate) && 'opacity-50',
+                    isToday(day) && 'bg-primary/5',
+                    isSelected &&
+                      'bg-primary/10 ring-1 ring-primary/50',
+                    'hover:bg-muted/50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium mb-2',
+                      isToday(day) &&
+                        'bg-primary text-primary-foreground'
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </div>
+
+                  <div className="space-y-1">
+                    {dayTasks.slice(0, 3).map(task => (
                       <div
-                        key={day.toISOString()}
-                        onClick={() => setSelectedDate(day)}
-                        className={cn(
-                          'min-h-[120px] p-2 border-t border-l border-border/50 cursor-pointer transition-all',
-                          !isSameMonth(day, currentDate) && 'opacity-50',
-                          isToday(day) && 'bg-primary/5',
-                          isSelected && 'bg-primary/10 ring-1 ring-primary/50',
-                          'hover:bg-muted/50'
-                        )}
+                        key={task.id}
+                        className="text-xs px-1.5 py-0.5 rounded truncate flex items-center gap-1 bg-muted"
                       >
                         <div
                           className={cn(
-                            'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium mb-2',
-                            isToday(day) && 'bg-primary text-primary-foreground'
+                            'w-1.5 h-1.5 rounded-full shrink-0',
+                            statusColors[task.status]
                           )}
-                        >
-                          {format(day, 'd')}
-                        </div>
-      
-                        <div className="space-y-1">
-                          {dayTasks.slice(0, 3).map(task => (
-                            <div
-                              key={task.id}
-                              className="text-xs px-1.5 py-0.5 rounded truncate flex items-center gap-1 bg-muted"
-                            >
-                              <div
-                                className={cn(
-                                  'w-1.5 h-1.5 rounded-full shrink-0',
-                                  statusColors[task.status]
-                                )}
-                              />
-                              <span className="truncate">{task.title}</span>
-                            </div>
-                          ))}
-      
-                          {dayTasks.length > 3 && (
-                            <div className="text-xs text-muted-foreground px-1.5">
-                              +{dayTasks.length - 3} more
-                            </div>
-                          )}
-                        </div>
+                        />
+                        <span className="truncate">
+                          {task.title}
+                        </span>
                       </div>
-                    );
-                  })}
+                    ))}
+
+                    {dayTasks.length > 3 && (
+                      <div className="text-xs text-muted-foreground px-1.5">
+                        +{dayTasks.length - 3} more
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* MODAL */}
       {selectedDate && (
         <>
@@ -218,10 +236,18 @@ const CalendarPage: React.FC = () => {
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {selectedDateTasks.length} task
-                    {selectedDateTasks.length !== 1 ? 's' : ''} scheduled
+                    {selectedDateTasks.length !== 1
+                      ? 's'
+                      : ''}{' '}
+                    scheduled
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)}>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedDate(null)}
+                >
                   <X size={20} />
                 </Button>
               </div>
@@ -229,13 +255,21 @@ const CalendarPage: React.FC = () => {
               <div className="space-y-3">
                 {selectedDateTasks.length > 0 ? (
                   selectedDateTasks.map(task => (
-                    <div key={task.id} className="p-4 rounded-lg bg-muted/50 space-y-3">
-                      <h4 className="font-medium">{task.title}</h4>
+                    <div
+                      key={task.id}
+                      className="p-4 rounded-lg bg-muted/50"
+                    >
+                      <h4 className="font-medium">
+                        {task.title}
+                      </h4>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="mx-auto mb-2" size={32} />
+                    <Clock
+                      className="mx-auto mb-2"
+                      size={32}
+                    />
                     <p>No tasks scheduled for this day</p>
                   </div>
                 )}
