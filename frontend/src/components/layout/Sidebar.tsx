@@ -31,6 +31,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
   const { logout } = useAuth();
 
+  const handleNavClick = () => {
+  // Close only on mobile
+  if (window.innerWidth < 1024) {
+    onToggle();
+  }
+};
+
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -76,15 +84,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             const isActive = location.pathname === item.path;
             return (
               <NavLink
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group",
-                  isActive
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
+  key={item.path}
+  to={item.path}
+  onClick={handleNavClick}
+  className={cn(
+    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group",
+    isActive
+      ? "bg-primary/10 text-primary border border-primary/20"
+      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+  )}
+>
+
                 <item.icon 
                   size={22} 
                   className={cn(
